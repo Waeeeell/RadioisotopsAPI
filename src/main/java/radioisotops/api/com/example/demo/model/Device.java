@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "devices")
 public class Device {
+    /* prova */
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -27,11 +28,6 @@ public class Device {
     @JoinColumn(name = "patient_id", referencedColumnName = "id")
     private Patient patient;
 
-    // --- Constructores ---
-    public Device() {
-    }
-
-    // --- Getters y Setters (Recuerda generarlos todos) ---
     public Long getId() {
         return id;
     }
@@ -48,6 +44,30 @@ public class Device {
         this.serieNum = serieNum;
     }
 
+    public String getTipo() {
+        return tipo;
+    }
+
+    public void setTipo(String tipo) {
+        this.tipo = tipo;
+    }
+
+    public String getEstado() {
+        return estado;
+    }
+
+    public void setEstado(String estado) {
+        this.estado = estado;
+    }
+
+    public LocalDateTime getUltimaConexion() {
+        return ultimaConexion;
+    }
+
+    public void setUltimaConexion(LocalDateTime ultimaConexion) {
+        this.ultimaConexion = ultimaConexion;
+    }
+
     public Patient getPatient() {
         return patient;
     }
@@ -55,4 +75,20 @@ public class Device {
     public void setPatient(Patient patient) {
         this.patient = patient;
     }
+
+    // --- Constructor vacío (OBLIGATORIO para JPA) ---
+    public Device() {
+    }
+
+    public Device(Long id, String serieNum, String tipo, String estado, LocalDateTime ultimaConexion, Patient patient) {
+        this.id = id;
+        this.serieNum = serieNum;
+        this.tipo = tipo;
+        this.estado = estado;
+        this.ultimaConexion = ultimaConexion;
+        this.patient = patient;
+    }
+
+    // --- Constructores ---
+
 }
