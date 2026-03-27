@@ -31,8 +31,24 @@ public class User {
     @Column(name = "hospital_ref")
     private String hospitalRef;
 
+    // Al ser el lado inverso de la relación y para evitar
+    // LazyInitializationException,
+    // usamos EAGER para que siempre cargue los datos del Doctor junto al Usuario.
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    private Doctor doctor; // Si el usuario es médico, aquí estarán sus datos extra
+
     // --- Constructor vacío (Obligatorio para Spring Boot) ---
     public User() {
+    }
+
+    // (Acuérdate de añadir el getDoctor() y setDoctor() abajo del todo con los
+    // demás)
+    public Doctor getDoctor() {
+        return doctor;
+    }
+
+    public void setDoctor(Doctor doctor) {
+        this.doctor = doctor;
     }
 
     public Long getId() {
@@ -110,4 +126,5 @@ public class User {
         this.estado = estado;
         this.hospitalRef = hospitalRef;
     }
+
 }
