@@ -18,8 +18,8 @@ public class User {
     private String email;
 
     @Column(nullable = false)
-    private String contraseña; // En un futuro la encriptaremos
-
+    private String contraseña; // Enn un futuro la encriptaremos
+    // Enn un futuro la encriptaremos
     @Column(nullable = false)
     private String rol; // Podría ser un Enum (MEDICO, PACIENTE, ADMIN)
 
