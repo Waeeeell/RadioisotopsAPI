@@ -21,33 +21,29 @@ public class DemoApplication {
 	// Crear el usuario administrador automáticamente al arrancar
 	// Añade el DoctorRepository como parámetro
 	@Bean
-	CommandLineRunner initDatabase(UserRepository userRepository,
-			radioisotops.api.com.example.demo.repository.DoctorRepository doctorRepository) {
+	CommandLineRunner initDatabase(UserRepository userRepository, DoctorRepository doctorRepository) {
 		return args -> {
-			if (userRepository.count() == 0) {
-				// 1. Creamos el Usuario Base
+			if (userRepository.findByEmail("kurophan@hospital.com") == null) {
 				User medico = new User();
 				medico.setNombreCompleto("Kuronami Phantom");
 				medico.setEmail("kurophan@hospital.com");
 				medico.setContraseña("1234!");
-				medico.setRol("MEDICO"); // Importante: Le ponemos rol MEDICO
+				medico.setRol("MEDICO");
 				medico.setEstado("ACTIVO");
 				medico.setHospitalRef("Hospital Central");
 				medico.setFechaRegistro(LocalDateTime.now());
-
-				// Guardamos el usuario para que se genere su ID
 				userRepository.save(medico);
 
-				// 2. Creamos los datos extra del Doctor y los enlazamos
 				Doctor datosDoctor = new Doctor();
 				datosDoctor.setEspecialidad("Oncología Radioterápica");
 				datosDoctor.setColegiadoNum("COL-123457");
-				datosDoctor.setUser(medico); // Enlazamos el Doctor con el Usuario
-
-				// Guardamos el doctor
+				datosDoctor.setUser(medico);
 				doctorRepository.save(datosDoctor);
+				
+				System.out.println("Médico 'Kuronami' creado con éxito.");
+			}
 
-				// --- 2. CREAR ADMINISTRADOR ---
+			if (userRepository.findByEmail("admin@hospital.com") == null) {
 				User admin = new User();
 				admin.setNombreCompleto("Admin General");
 				admin.setEmail("admin@hospital.com");
@@ -57,13 +53,11 @@ public class DemoApplication {
 				admin.setHospitalRef("Hospital Central");
 				admin.setFechaRegistro(LocalDateTime.now());
 				userRepository.save(admin);
-
-				System.out.println("=========================================");
-				System.out.println("✅ MÉDICO CREADO (USER + DOCTOR)");
-				System.out.println("👉 Email: kurophan@hospital.com");
-				System.out.println("👉 Clave: 1234!");
-				System.out.println("=========================================");
+				
+				System.out.println("Administrador creado con éxito.");
 			}
+			
+			System.out.println("🚀 Verificación de usuarios iniciales completada.");
 		};
 	}
 }
