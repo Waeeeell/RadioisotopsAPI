@@ -41,16 +41,27 @@ public class DemoApplication {
 				// 2. Creamos los datos extra del Doctor y los enlazamos
 				Doctor datosDoctor = new Doctor();
 				datosDoctor.setEspecialidad("Oncología Radioterápica");
-				datosDoctor.setColegiadoNum("COL-123456");
+				datosDoctor.setColegiadoNum("COL-123457");
 				datosDoctor.setUser(medico); // Enlazamos el Doctor con el Usuario
 
 				// Guardamos el doctor
 				doctorRepository.save(datosDoctor);
 
+				// --- 2. CREAR ADMINISTRADOR ---
+				User admin = new User();
+				admin.setNombreCompleto("Admin General");
+				admin.setEmail("admin@hospital.com");
+				admin.setContraseña("admin123&!");
+				admin.setRol("ADMIN");
+				admin.setEstado("ACTIVO");
+				admin.setHospitalRef("Hospital Central");
+				admin.setFechaRegistro(LocalDateTime.now());
+				userRepository.save(admin);
+
 				System.out.println("=========================================");
 				System.out.println("✅ MÉDICO CREADO (USER + DOCTOR)");
-				System.out.println("👉 Email: user@hospital.com");
-				System.out.println("👉 Clave: 1234");
+				System.out.println("👉 Email: kurophan@hospital.com");
+				System.out.println("👉 Clave: 1234!");
 				System.out.println("=========================================");
 			}
 		};
