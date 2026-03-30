@@ -18,8 +18,6 @@ public class DemoApplication {
 		SpringApplication.run(DemoApplication.class, args);
 	}
 
-	// Crear el usuario administrador automáticamente al arrancar
-	// Añade el DoctorRepository como parámetro
 	@Bean
 	CommandLineRunner initDatabase(UserRepository userRepository, DoctorRepository doctorRepository) {
 		return args -> {
