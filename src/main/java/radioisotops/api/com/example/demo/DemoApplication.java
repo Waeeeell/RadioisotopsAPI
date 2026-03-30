@@ -28,8 +28,8 @@ public class DemoApplication {
 				// 1. Creamos el Usuario Base
 				User medico = new User();
 				medico.setNombreCompleto("Kuronami Phantom");
-				medico.setEmail("user@hospital.com");
-				medico.setContraseña("1234");
+				medico.setEmail("kurophan@hospital.com");
+				medico.setContraseña("1234!");
 				medico.setRol("MEDICO"); // Importante: Le ponemos rol MEDICO
 				medico.setEstado("ACTIVO");
 				medico.setHospitalRef("Hospital Central");
