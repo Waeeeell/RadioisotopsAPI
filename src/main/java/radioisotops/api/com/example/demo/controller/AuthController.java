@@ -7,6 +7,7 @@ import radioisotops.api.com.example.demo.dto.LoginRequest;
 import radioisotops.api.com.example.demo.dto.LoginResponseDTO;
 import radioisotops.api.com.example.demo.model.User;
 import radioisotops.api.com.example.demo.repository.UserRepository;
+import radioisotops.api.com.example.demo.security.JwtUtil;
 
 import java.util.Optional;
 
@@ -18,6 +19,9 @@ public class AuthController {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private JwtUtil jwtUtil;
+
     @PostMapping("/login")
     public ResponseEntity<?> iniciarSesion(@RequestBody LoginRequest loginRequest) {
 
@@ -26,7 +30,7 @@ public class AuthController {
         if (usuarioOpt.isPresent()) {
             User usuario = usuarioOpt.get();
 
-            if (usuario.getContraseña().equals(loginRequest.getContraseña())) {
+            if (usuario.getPassword().equals(loginRequest.getPassword())) {
 
                 // Preparamos los datos base
                 String especialidad = null;
@@ -38,13 +42,18 @@ public class AuthController {
                     colegiado = usuario.getDoctor().getColegiadoNum();
                 }
 
+                String token = jwtUtil.generateToken(usuario.getEmail());
+
                 // Creamos el paquete completo para React
                 LoginResponseDTO respuesta = new LoginResponseDTO(
+                        usuario.getId(),
                         usuario.getEmail(),
                         usuario.getNombreCompleto(),
                         usuario.getRol(),
                         especialidad,
-                        colegiado);
+                        colegiado,
+                        token
+                );
 
                 return ResponseEntity.ok(respuesta);
             }

@@ -3,7 +3,7 @@ package radioisotops.api.com.example.demo.dto;
 public class LoginRequest {
 
     private String email;
-    private String contraseña;
+    private String password;
 
     public LoginRequest() {
     }
@@ -16,11 +16,11 @@ public class LoginRequest {
         this.email = email;
     }
 
-    public String getContraseña() {
-        return contraseña;
+    public String getPassword() {
+        return password;
     }
 
-    public void setContraseña(String contraseña) {
-        this.contraseña = contraseña;
+    public void setPassword(String password) {
+        this.password = password;
     }
 }

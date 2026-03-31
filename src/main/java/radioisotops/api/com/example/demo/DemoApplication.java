@@ -25,7 +25,7 @@ public class DemoApplication {
                 User medico = new User();
                 medico.setNombreCompleto("Kuronami Phantom");
                 medico.setEmail("kurophan@hospital.com");
-                medico.setContraseña("1234!");
+                medico.setPassword("1234!");
                 medico.setRol("MEDICO");
                 medico.setEstado("ACTIVO");
                 medico.setHospitalRef("Hospital Central");
@@ -45,7 +45,7 @@ public class DemoApplication {
                 User admin = new User();
                 admin.setNombreCompleto("Admin General");
                 admin.setEmail("admin@hospital.com");
-                admin.setContraseña("admin123&!");
+                admin.setPassword("admin123&!");
                 admin.setRol("ADMIN");
                 admin.setEstado("ACTIVO");
                 admin.setHospitalRef("Hospital Central");

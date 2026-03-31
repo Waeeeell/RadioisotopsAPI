@@ -18,7 +18,7 @@ public class User {
     private String email;
 
     @Column(nullable = false)
-    private String contraseña; // Enn un futuro la encriptaremos
+    private String password; // Enn un futuro la encriptaremos
     // Enn un futuro la encriptaremos
     @Column(nullable = false)
     private String rol; // Podría ser un Enum (MEDICO, PACIENTE, ADMIN)
@@ -75,12 +75,12 @@ public class User {
         this.email = email;
     }
 
-    public String getContraseña() {
-        return contraseña;
+    public String getPassword() {
+        return password;
     }
 
-    public void setContraseña(String contraseña) {
-        this.contraseña = contraseña;
+    public void setPassword(String password) {
+        this.password = password;
     }
 
     public String getRol() {
@@ -115,12 +115,12 @@ public class User {
         this.hospitalRef = hospitalRef;
     }
 
-    public User(Long id, String nombreCompleto, String email, String contraseña, String rol,
+    public User(Long id, String nombreCompleto, String email, String password, String rol,
             LocalDateTime fechaRegistro, String estado, String hospitalRef) {
         this.id = id;
         this.nombreCompleto = nombreCompleto;
         this.email = email;
-        this.contraseña = contraseña;
+        this.password = password;
         this.rol = rol;
         this.fechaRegistro = fechaRegistro;
         this.estado = estado;

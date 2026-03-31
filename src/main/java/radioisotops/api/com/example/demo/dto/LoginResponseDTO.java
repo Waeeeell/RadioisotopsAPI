@@ -2,21 +2,33 @@ package radioisotops.api.com.example.demo.dto;
 
 public class LoginResponseDTO {
 
+    private Long id;
     private String email;
     private String nombreCompleto;
     private String rol;
     private String especialidad;
     private String colegiado;
+    private String token;
 
-    public LoginResponseDTO(String email, String nombreCompleto, String rol, String especialidad, String colegiado) {
+    public LoginResponseDTO(Long id, String email, String nombreCompleto, String rol, String especialidad, String colegiado, String token) {
+        this.id = id;
         this.email = email;
         this.nombreCompleto = nombreCompleto;
         this.rol = rol;
         this.especialidad = especialidad;
         this.colegiado = colegiado;
+        this.token = token;
     }
 
-    // Getters y Setters para que Spring pueda serializar el objeto a JSON
+    public LoginResponseDTO() {}
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
 
     public String getEmail() {
         return email;
@@ -56,5 +68,13 @@ public class LoginResponseDTO {
 
     public void setColegiado(String colegiado) {
         this.colegiado = colegiado;
+    }
+
+    public String getToken() { // <--- Sin este Getter, el token no llegará a React
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
     }
 }
