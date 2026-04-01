@@ -1,5 +1,6 @@
 package radioisotops.api.com.example.demo.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -59,5 +60,31 @@ public class AuthController {
             }
         }
         return ResponseEntity.status(401).body("Credenciales incorrectas");
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<?> obtenerUsuarioActual(HttpServletRequest request) {
+        String email = (String) request.getAttribute("userEmail");
+
+        if (email == null) {
+            return ResponseEntity.status(401).body("No autenticado");
+        }
+
+        return userRepository.findByEmail(email)
+                .map(user -> {
+                    String especialidad = (user.getDoctor() != null) ? user.getDoctor().getEspecialidad() : null;
+                    String colegiado = (user.getDoctor() != null) ? user.getDoctor().getColegiadoNum() : null;
+
+                    return ResponseEntity.ok(new LoginResponseDTO(
+                            user.getId(),
+                            user.getEmail(),
+                            user.getNombreCompleto(),
+                            user.getRol(),
+                            especialidad,
+                            colegiado,
+                            null
+                    ));
+                })
+                .orElse(ResponseEntity.status(404).build());
     }
 }
