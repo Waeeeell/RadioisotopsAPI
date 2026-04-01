@@ -115,17 +115,18 @@ public class PatientController {
             dto.put("nombre", p.getUser().getNombreCompleto());
             dto.put("cip", p.getDni());
 
-            // Buscamos su último tratamiento
             Treatment tratment = treatmentRepository.findFirstByPatientOrderByFechaInicioDesc(p);
-            if (tratment != null) {
+
+            if (tratment != null && tratment.getRadioisotopo() != null) {
                 dto.put("tratamiento", tratment.getRadioisotopo() + " (" + tratment.getDosis() + " MBq)");
             } else {
                 dto.put("tratamiento", "Sin tratamiento");
             }
 
-            // Datos estáticos por ahora para el diseño
             dto.put("estado", "ESTABLE");
             dto.put("progreso", 50);
+            dto.put("color", "green");
+
             return dto;
         }).collect(Collectors.toList());
 
