@@ -106,7 +106,7 @@ public class PatientController {
         return ResponseEntity.ok(total);
     }
 
-    @GetMapping("/lista-gesiton")
+    @GetMapping("/lista-gestion")
     public ResponseEntity<List<Map<String, Object>>> obtenerPacientesGestion() {
         List<Patient> pacientes = patientRepository.findAll();
 
