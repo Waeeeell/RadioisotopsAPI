@@ -10,7 +10,10 @@ import radioisotops.api.com.example.demo.repository.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/patients")
@@ -101,5 +104,31 @@ public class PatientController {
     public ResponseEntity<Long> obtenerTotalPacientes() {
         long total = patientRepository.count();
         return ResponseEntity.ok(total);
+    }
+
+    @GetMapping("/lista-gesiton")
+    public ResponseEntity<List<Map<String, Object>>> obtenerPacientesGestion() {
+        List<Patient> pacientes = patientRepository.findAll();
+
+        List<Map<String, Object>> respuesta = pacientes.stream().map(p -> {
+            Map<String, Object> dto = new HashMap<>();
+            dto.put("nombre", p.getUser().getNombreCompleto());
+            dto.put("cip", p.getDni());
+
+            // Buscamos su último tratamiento
+            Treatment tratment = treatmentRepository.findFirstByPatientOrderByFechaInicioDesc(p);
+            if (tratment != null) {
+                dto.put("tratamiento", tratment.getRadioisotopo() + " (" + tratment.getDosis() + " MBq)");
+            } else {
+                dto.put("tratamiento", "Sin tratamiento");
+            }
+
+            // Datos estáticos por ahora para el diseño
+            dto.put("estado", "ESTABLE");
+            dto.put("progreso", 50);
+            return dto;
+        }).collect(Collectors.toList());
+
+        return ResponseEntity.ok(respuesta);
     }
 }
