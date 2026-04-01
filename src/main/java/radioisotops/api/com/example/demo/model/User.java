@@ -127,4 +127,9 @@ public class User {
         this.hospitalRef = hospitalRef;
     }
 
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
+    private Patient patient;
+
+    public Patient getPatient() { return patient; }
+    public void setPatient(Patient patient) { this.patient = patient; }
 }

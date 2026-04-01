@@ -11,8 +11,8 @@ public class Patient {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id; // PK del paciente
 
-    @Column(name = "fecha_nacimiento", nullable = false)
-    private LocalDate fechaNacimiento; // Mejor LocalDate para fechas sin hora
+    @Column(name = "fecha_nacimiento", nullable = true) // Cambiado a true
+    private LocalDate fechaNacimiento;// Mejor LocalDate para fechas sin hora
 
     @Column(nullable = false, unique = true)
     private String dni;

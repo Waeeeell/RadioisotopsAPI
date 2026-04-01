@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import radioisotops.api.com.example.demo.model.*;
 import radioisotops.api.com.example.demo.repository.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Map;
 
@@ -37,51 +38,48 @@ public class PatientController {
             Map<String, Object> datosTratamiento = (Map<String, Object>) payload.get("tratamiento");
 
             if (datosPaciente == null || datosTratamiento == null) {
-                return ResponseEntity.badRequest().body("Error: Estructura de datos incompleta.");
+                return ResponseEntity.badRequest().body("Error: Faltan datos en el envío.");
             }
 
             String doctorEmail = (String) request.getAttribute("userEmail");
-            if (doctorEmail == null) {
-                return ResponseEntity.status(401).body("Error: No se encontró una sesión válida (Falta Token)");
-            }
-
             User usuarioMedico = userRepository.findByEmail(doctorEmail)
-                    .orElseThrow(() -> new RuntimeException("Médico no encontrado en el sistema"));
+                    .orElseThrow(() -> new RuntimeException("Médico no encontrado"));
 
             Doctor doc = usuarioMedico.getDoctor();
-            if (doc == null) {
-                return ResponseEntity.badRequest().body("Error: El usuario autenticado no tiene perfil de médico.");
-            }
 
+            String cip = (String) datosPaciente.get("cip");
             User userPaciente = new User();
             userPaciente.setNombreCompleto((String) datosPaciente.get("nombreCompleto"));
-            userPaciente.setEmail(datosPaciente.get("cip") + "@catsalut.cat");
-            userPaciente.setPassword((String) datosPaciente.get("cip")); // Password por defecto es su CIP
+            userPaciente.setEmail(cip + "@catsalut.cat");
+            userPaciente.setPassword(cip);
             userPaciente.setRol("PACIENTE");
             userPaciente.setEstado("ACTIVO");
             userPaciente.setFechaRegistro(LocalDateTime.now());
+
+            userPaciente.setHospitalRef((String) datosPaciente.get("hospitalReferencia"));
+
             User userGuardado = userRepository.save(userPaciente);
 
             Patient patient = new Patient();
             patient.setUser(userGuardado);
-            patient.setDni((String) datosPaciente.get("cip"));
-            patient.setNumSs((String) datosPaciente.get("cip"));
+            patient.setDni(cip);
+            patient.setNumSs(cip);
+
+            String fechaNacStr = (String) datosPaciente.get("fechaNacimiento");
+            if (fechaNacStr != null && !fechaNacStr.isEmpty()) {
+                patient.setFechaNacimiento(LocalDate.parse(fechaNacStr));
+            }
 
             Patient patientGuardado = patientRepository.save(patient);
 
             Treatment treatment = new Treatment();
             treatment.setRadioisotopo((String) datosTratamiento.get("radioisotopo"));
 
-            try {
-                Object dosisObj = datosTratamiento.get("dosis");
-                if (dosisObj != null && !dosisObj.toString().trim().isEmpty()) {
-                    String dosisLimpia = dosisObj.toString().replace(",", ".");
-                    treatment.setDosis(Double.valueOf(dosisLimpia));
-                } else {
-                    treatment.setDosis(0.0);
-                }
-            } catch (NumberFormatException e) {
-                return ResponseEntity.badRequest().body("Error: El formato de la dosis no es válido.");
+            Object dosisObj = datosTratamiento.get("dosis");
+            if (dosisObj != null && !dosisObj.toString().isEmpty()) {
+                treatment.setDosis(Double.valueOf(dosisObj.toString()));
+            } else {
+                treatment.setDosis(0.0);
             }
 
             treatment.setFechaInicio(LocalDateTime.now());
@@ -91,11 +89,11 @@ public class PatientController {
 
             treatmentRepository.save(treatment);
 
-            return ResponseEntity.ok("Alta procesada correctamente por el Dr/a. " + usuarioMedico.getNombreCompleto());
+            return ResponseEntity.ok("Alta procesada con éxito por el Dr/a. " + usuarioMedico.getNombreCompleto());
 
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(500).body("Error en el proceso de alta: " + e.getMessage());
+            return ResponseEntity.status(500).body("Error en el alta: " + e.getMessage());
         }
     }
 }
