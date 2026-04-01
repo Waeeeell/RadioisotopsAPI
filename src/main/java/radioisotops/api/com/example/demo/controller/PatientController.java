@@ -112,24 +112,54 @@ public class PatientController {
 
         List<Map<String, Object>> respuesta = pacientes.stream().map(p -> {
             Map<String, Object> dto = new HashMap<>();
-            dto.put("nombre", p.getUser().getNombreCompleto());
+            dto.put("nombre", p.getUser() != null ? p.getUser().getNombreCompleto() : "Desconegut");
             dto.put("cip", p.getDni());
 
-            Treatment tratment = treatmentRepository.findFirstByPatientOrderByFechaInicioDesc(p);
+            Treatment t = treatmentRepository.findFirstByPatientOrderByFechaInicioDesc(p);
 
-            if (tratment != null && tratment.getRadioisotopo() != null) {
-                dto.put("tratamiento", tratment.getRadioisotopo() + " (" + tratment.getDosis() + " MBq)");
+            if (t != null && t.getRadioisotopo() != null) {
+                double dosiInicial = t.getDosis();
+                double activitatActual = calcularActivitatActual(t.getRadioisotopo(), dosiInicial, t.getFechaInicio());
+
+                dto.put("tratamiento", t.getRadioisotopo() + " (" + String.format("%.2f", activitatActual) + " MBq)");
+
+                double progress = (activitatActual / dosiInicial) * 100;
+                dto.put("progreso", (int) Math.round(progress));
+
+                // Color segons normativa de l'Excel
+                if (activitatActual > 400) dto.put("color", "red");
+                else if (activitatActual > 1) dto.put("color", "yellow");
+                else dto.put("color", "green");
+
             } else {
-                dto.put("tratamiento", "Sin tratamiento");
+                dto.put("tratamiento", "Sense tractament");
+                dto.put("progreso", 0);
+                dto.put("color", "gray");
             }
 
             dto.put("estado", "ESTABLE");
-            dto.put("progreso", 50);
-            dto.put("color", "green");
-
             return dto;
         }).collect(Collectors.toList());
 
         return ResponseEntity.ok(respuesta);
+    }
+
+    private double calcularActivitatActual(String isotopo, double dosiInicial, LocalDateTime fechaInicio) {
+        double teHores;
+
+        // Assignem el Temps Efectiu (Te) segons el teu Excel
+        if (isotopo.contains("I-131") || isotopo.contains("Iode")) {
+            teHores = 16.4616; // 0.6859 dies * 24h
+        } else if (isotopo.contains("Lu-177") || isotopo.contains("Lutenci")) {
+            teHores = 16.176;  // 0.674 dies * 24h
+        } else {
+            return dosiInicial;
+        }
+
+        // t = temps transcorregut en hores
+        long horesTranscorregudes = java.time.Duration.between(fechaInicio, LocalDateTime.now()).toHours();
+
+        // Fórmula de l'Excel: A(t) = A0 * (0.5 ^ (t / Te))
+        return dosiInicial * Math.pow(0.5, (double) horesTranscorregudes / teHores);
     }
 }
