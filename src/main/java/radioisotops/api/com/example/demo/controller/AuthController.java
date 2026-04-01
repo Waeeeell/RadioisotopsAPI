@@ -14,7 +14,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*") // Esto evita que React Native bloquee la conexión
+@CrossOrigin(origins = "*", allowedHeaders = "*") // Esto evita que React Native bloquee la conexión
 public class AuthController {
 
     @Autowired
