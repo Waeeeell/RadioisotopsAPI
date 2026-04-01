@@ -29,27 +29,33 @@ public class JwtFilter extends OncePerRequestFilter {
             return;
         }
 
-        // 1. Extraer la cabecera "Authorization"
         String authHeader = request.getHeader("Authorization");
+        String requestURI = request.getRequestURI();
 
-        // 2. Si viene el Token (formato: "Bearer texto_del_token")
+        if (requestURI.contains("/api/auth/login") || requestURI.contains("/api/auth/register")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
-
-            // 3. Validar el Token
-            if (jwtUtil.validateToken(token)) {
-                // Si es válido, guardamos el email en los atributos para que el Controller lo use
-                String email = jwtUtil.extractEmail(token);
-                request.setAttribute("userEmail", email);
-            } else {
-                // Si es falso o caducado, cortamos la conexión
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token inválido o expirado");
+            try {
+                if (jwtUtil.validateToken(token)) {
+                    String email = jwtUtil.extractEmail(token);
+                    request.setAttribute("userEmail", email);
+                } else {
+                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token inválido o expirado");
+                    return;
+                }
+            } catch (Exception e) {
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Error procesando el token");
                 return;
             }
-        } else if (!request.getRequestURI().contains("/api/auth/")) {
-            // Si intenta entrar a /patients/ sin token, fuera
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Falta el token de autorización");
-            return;
+        } else {
+            if (requestURI.contains("/api/patients") || requestURI.contains("/api/users")) {
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Falta el token de autorización");
+                return;
+            }
         }
 
         filterChain.doFilter(request, response);

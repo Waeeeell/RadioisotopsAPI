@@ -96,4 +96,10 @@ public class PatientController {
             return ResponseEntity.status(500).body("Error en el alta: " + e.getMessage());
         }
     }
+
+    @GetMapping("/count-total")
+    public ResponseEntity<Long> obtenerTotalPacientes() {
+        long total = patientRepository.count();
+        return ResponseEntity.ok(total);
+    }
 }
