@@ -33,8 +33,14 @@ public class PatientController {
     @Transactional
     public ResponseEntity<?> registrarAltaCompleta(@RequestBody Map<String, Object> payload, HttpServletRequest request) {
         try {
-            String doctorEmail = (String) request.getAttribute("userEmail");
+            Map<String, Object> datosPaciente = (Map<String, Object>) payload.get("paciente");
+            Map<String, Object> datosTratamiento = (Map<String, Object>) payload.get("tratamiento");
 
+            if (datosPaciente == null || datosTratamiento == null) {
+                return ResponseEntity.badRequest().body("Error: Estructura de datos incompleta.");
+            }
+
+            String doctorEmail = (String) request.getAttribute("userEmail");
             if (doctorEmail == null) {
                 return ResponseEntity.status(401).body("Error: No se encontró una sesión válida (Falta Token)");
             }
@@ -48,9 +54,9 @@ public class PatientController {
             }
 
             User userPaciente = new User();
-            userPaciente.setNombreCompleto((String) payload.get("nombreCompleto"));
-            userPaciente.setEmail(payload.get("cip") + "@catsalut.cat");
-            userPaciente.setPassword((String) payload.get("cip"));
+            userPaciente.setNombreCompleto((String) datosPaciente.get("nombreCompleto"));
+            userPaciente.setEmail(datosPaciente.get("cip") + "@catsalut.cat");
+            userPaciente.setPassword((String) datosPaciente.get("cip")); // Password por defecto es su CIP
             userPaciente.setRol("PACIENTE");
             userPaciente.setEstado("ACTIVO");
             userPaciente.setFechaRegistro(LocalDateTime.now());
@@ -58,20 +64,21 @@ public class PatientController {
 
             Patient patient = new Patient();
             patient.setUser(userGuardado);
-            patient.setDni((String) payload.get("cip"));
-            patient.setNumSs((String) payload.get("cip"));
+            patient.setDni((String) datosPaciente.get("cip"));
+            patient.setNumSs((String) datosPaciente.get("cip"));
+
             Patient patientGuardado = patientRepository.save(patient);
 
             Treatment treatment = new Treatment();
-            treatment.setRadioisotopo((String) payload.get("tipoIsotopo"));
+            treatment.setRadioisotopo((String) datosTratamiento.get("radioisotopo"));
 
             try {
-                Object dosisObj = payload.get("dosis");
+                Object dosisObj = datosTratamiento.get("dosis");
                 if (dosisObj != null && !dosisObj.toString().trim().isEmpty()) {
                     String dosisLimpia = dosisObj.toString().replace(",", ".");
                     treatment.setDosis(Double.valueOf(dosisLimpia));
                 } else {
-                    treatment.setDosis(Double.valueOf(0.0));
+                    treatment.setDosis(0.0);
                 }
             } catch (NumberFormatException e) {
                 return ResponseEntity.badRequest().body("Error: El formato de la dosis no es válido.");
@@ -79,9 +86,8 @@ public class PatientController {
 
             treatment.setFechaInicio(LocalDateTime.now());
             treatment.setPatient(patientGuardado);
-            treatment.setInstrucciones("Alta inicial: Monitorización Zero-Config activa.");
-
             treatment.setDoctor(doc);
+            treatment.setInstrucciones("Alta inicial: Monitorización Zero-Config activa.");
 
             treatmentRepository.save(treatment);
 
