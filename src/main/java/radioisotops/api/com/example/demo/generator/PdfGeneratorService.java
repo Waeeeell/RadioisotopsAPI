@@ -1,4 +1,4 @@
-package radioisotops.api.com.example.demo.service;
+package radioisotops.api.com.example.demo.generator;
 
 import com.lowagie.text.*;
 import com.lowagie.text.pdf.PdfContentByte;

@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import radioisotops.api.com.example.demo.model.User;
 import radioisotops.api.com.example.demo.repository.UserRepository;
+import radioisotops.api.com.example.demo.service.EmailService; // Importamos el servicio
 import java.time.LocalDateTime;
 
 @RestController
@@ -16,10 +17,11 @@ public class UserController {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private EmailService emailService; // Inyectamos el servicio de correo
+
     /**
-     * Registro de médicos.
-     * NOTA: Este endpoint debería verificar
-     * si el usuario que hace la petición tiene ROL = 'ADMIN'.
+     * Registro de médicos con envío de email automático.
      */
     @PostMapping("/register-doctor")
     public ResponseEntity<?> registrarDoctor(@RequestBody User nuevoUsuario, HttpServletRequest request) {
@@ -31,6 +33,8 @@ public class UserController {
                 return ResponseEntity.badRequest().body("Error: El email ya existe.");
             }
 
+            String passwordParaEmail = nuevoUsuario.getPassword();
+
             nuevoUsuario.setFechaRegistro(LocalDateTime.now());
             nuevoUsuario.setRol("MEDICO");
             nuevoUsuario.setEstado("ACTIVO");
@@ -40,7 +44,17 @@ public class UserController {
             }
 
             userRepository.save(nuevoUsuario);
-            return ResponseEntity.ok("Médico registrado correctamente en el sistema.");
+
+            try {
+                emailService.enviarBienvenidaMedico(
+                        nuevoUsuario.getEmail(),
+                        nuevoUsuario.getNombreCompleto(),
+                        passwordParaEmail
+                );
+                return ResponseEntity.ok("Médico registrado correctamente y email enviado.");
+            } catch (Exception e) {
+                return ResponseEntity.ok("Médico registrado, pero hubo un error al enviar el email: " + e.getMessage());
+            }
 
         } catch (Exception e) {
             e.printStackTrace();

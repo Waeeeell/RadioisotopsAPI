@@ -9,6 +9,7 @@ import radioisotops.api.com.example.demo.dto.LoginResponseDTO;
 import radioisotops.api.com.example.demo.model.User;
 import radioisotops.api.com.example.demo.repository.UserRepository;
 import radioisotops.api.com.example.demo.security.JwtUtil;
+import radioisotops.api.com.example.demo.service.EmailService;
 
 import java.util.List;
 import java.util.Map;
@@ -24,6 +25,9 @@ public class AuthController {
 
     @Autowired
     private JwtUtil jwtUtil;
+
+    @Autowired
+    private EmailService emailService;
 
     @PostMapping("/login")
     public ResponseEntity<?> iniciarSesion(@RequestBody LoginRequest loginRequest) {
@@ -107,9 +111,18 @@ public class AuthController {
     @PatchMapping("/doctor/{id}/password")
     public ResponseEntity<?> resetPassword(@PathVariable Long id, @RequestBody Map<String, String> body) {
         return userRepository.findById(id).map(user -> {
-            user.setPassword(body.get("password")); // Aquí deberías usar BCrypt
+            String nuevaPass = body.get("password");
+
+            user.setPassword(nuevaPass);
             userRepository.save(user);
-            return ResponseEntity.ok("Contraseña reseteada");
+
+            try {
+                emailService.enviarPasswordTemporal(user.getEmail(), user.getNombreCompleto(), nuevaPass);
+                return ResponseEntity.ok("Contraseña actualizada y correo enviado.");
+            } catch (Exception e) {
+                return ResponseEntity.status(500).body("Error al enviar el correo: " + e.getMessage());
+            }
+
         }).orElse(ResponseEntity.notFound().build());
     }
 }
