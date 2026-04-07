@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -15,6 +16,7 @@ public class EmailService {
     /**
      * Envío de nueva clave temporal tras un reset en el Panel de Auditoría.
      */
+    @Async
     public void enviarPasswordTemporal(String emailDestino, String nombreMedico, String nuevaPassword) {
         try {
             SimpleMailMessage mensaje = new SimpleMailMessage();
@@ -48,7 +50,7 @@ public class EmailService {
     /**
      * Envío de bienvenida y credenciales para nuevos médicos registrados.
      */
-    // Reemplaza tu método enviarBienvenidaMedico por este:
+    @Async
     public void enviarBienvenidaMedico(String emailDestino, String nombreMedico, String passwordTemporal) {
         try {
             System.out.println(">>> [MAIL] Preparando mensaje para: " + emailDestino);
