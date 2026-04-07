@@ -22,10 +22,8 @@ public class PatientController {
 
     @Autowired
     private UserRepository userRepository;
-
     @Autowired
     private PatientRepository patientRepository;
-
     @Autowired
     private TreatmentRepository treatmentRepository;
 
@@ -45,8 +43,8 @@ public class PatientController {
                     .orElseThrow(() -> new RuntimeException("Médico no encontrado"));
 
             Doctor doc = usuarioMedico.getDoctor();
-
             String cip = (String) datosPaciente.get("cip");
+
             User userPaciente = new User();
             userPaciente.setNombreCompleto((String) datosPaciente.get("nombreCompleto"));
             userPaciente.setEmail(cip + "@catsalut.cat");
@@ -80,6 +78,7 @@ public class PatientController {
                 double valorDosis = Double.parseDouble(dosisObj.toString());
                 double dosisEnMBq;
 
+                // Conversión 1 mCi = 37 MBq según Excel
                 if ("mCi".equalsIgnoreCase(unidad)) {
                     dosisEnMBq = valorDosis * 37.0;
                 } else if ("Ci".equalsIgnoreCase(unidad)) {
@@ -95,7 +94,7 @@ public class PatientController {
             treatment.setFechaInicio(LocalDateTime.now());
             treatment.setPatient(patientGuardado);
             treatment.setDoctor(doc);
-            treatment.setInstrucciones("Alta inicial: Monitorització activa.");
+            treatment.setInstrucciones("Monitorització activa basada en decaïment físic real.");
 
             treatmentRepository.save(treatment);
 
@@ -110,8 +109,7 @@ public class PatientController {
     @GetMapping("/count-total")
     public ResponseEntity<Long> obtenerTotalPacientes() {
         try {
-            long total = patientRepository.count();
-            return ResponseEntity.ok(total);
+            return ResponseEntity.ok(patientRepository.count());
         } catch (Exception e) {
             return ResponseEntity.status(500).body(0L);
         }
@@ -132,24 +130,25 @@ public class PatientController {
                 double dosiInicial = t.getDosis();
                 double activitatActual = calcularActivitatActual(t.getRadioisotopo(), dosiInicial, t.getFechaInicio());
 
-                // --- MEJORA DE NOMBRES ---
                 String isoOriginal = t.getRadioisotopo();
                 String isoBonito = isoOriginal;
-                if (isoOriginal.contains("I-131") || isoOriginal.contains("Iode")) isoBonito = "Iodo-131";
-                else if (isoOriginal.contains("Lu-177") || isoOriginal.contains("Lutenci")) isoBonito = "Luteci-177";
-                else if (isoOriginal.contains("Co-60") || isoOriginal.contains("Cobalt")) isoBonito = "Cobalt-60";
+                if (isoOriginal.contains("I-131")) isoBonito = "Iodo-131";
+                else if (isoOriginal.contains("Lu-177")) isoBonito = "Luteci-177";
+                else if (isoOriginal.contains("Co-60")) isoBonito = "Cobalt-60";
 
                 dto.put("tratamiento", isoBonito + " (" + String.format("%.2f", activitatActual) + " MBq)");
 
+                // El progreso es la actividad que queda respecto a la inicial
                 double progress = (activitatActual / dosiInicial) * 100;
                 dto.put("progreso", (int) Math.round(progress));
 
+                // --- UMBRALES REALES EXCEL DHM ---
                 if (activitatActual > 400) {
                     dto.put("color", "red");
-                    dto.put("estado", "CRÍTIC");
+                    dto.put("estado", "INGRESSAT");
                 } else if (activitatActual > 1) {
                     dto.put("color", "yellow");
-                    dto.put("estado", "ESTABLE");
+                    dto.put("estado", "AMBULATORI");
                 } else {
                     dto.put("color", "green");
                     dto.put("estado", "EXEMPT");
@@ -165,18 +164,23 @@ public class PatientController {
     }
 
     private double calcularActivitatActual(String isotopo, double dosiInicial, LocalDateTime fechaInicio) {
-        double teHores;
-        if (isotopo.contains("I-131") || isotopo.contains("Iode")) {
-            teHores = 16.4616;
-        } else if (isotopo.contains("Lu-177") || isotopo.contains("Lutenci")) {
-            teHores = 16.176;
-        } else if (isotopo.contains("Co-60") || isotopo.contains("Cobalt")) {
-            teHores = 46164.0;
-        } else {
+        double tMedHores;
+
+        // Valores extraídos de tu tabla de decaimiento
+        if (isotopo.contains("I-131") || isotopo.contains("Iodo")) {
+            tMedHores = 192.48; // 8.02 días * 24h
+        } else if (isotopo.contains("Lu-177") || isotopo.contains("Lutecio")) {
+            tMedHores = 159.36; // 6.64 días * 24h
+        } else if (isotopo.contains("Co-60") || isotopo.contains("Cobalto")) {
+            tMedHores = 46164.0; // 5.27 años * 365 días * 24h
+        }  else {
             return dosiInicial;
         }
 
-        long hores = java.time.Duration.between(fechaInicio, LocalDateTime.now()).toHours();
-        return dosiInicial * Math.pow(0.5, (double) hores / teHores);
+        // t = tiempo transcurrido desde la administración
+        long horesTranscorregudes = java.time.Duration.between(fechaInicio, LocalDateTime.now()).toHours();
+
+        // Fórmula exponencial: A(t) = A0 * 0.5^(t/T1/2)
+        return dosiInicial * Math.pow(0.5, (double) horesTranscorregudes / tMedHores);
     }
 }
