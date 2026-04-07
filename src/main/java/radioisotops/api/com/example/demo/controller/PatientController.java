@@ -41,6 +41,9 @@ public class PatientController {
     @Autowired
     private PdfGeneratorService pdfService;
 
+    @Autowired
+    private ActivityRepository activityRepository;
+
     @PostMapping("/register-full")
     @Transactional
     public ResponseEntity<?> registrarAltaCompleta(@RequestBody Map<String, Object> payload, HttpServletRequest request) {
@@ -271,5 +274,42 @@ public class PatientController {
     @GetMapping("/count-total")
     public ResponseEntity<Long> obtenerTotalPacientes() {
         return ResponseEntity.ok(patientRepository.count());
+    }
+
+    @PostMapping("/{cip}/register-view")
+    public ResponseEntity<?> registrarVisita(@PathVariable String cip, HttpServletRequest request) {
+        String email = (String) request.getAttribute("userEmail");
+        User docUser = userRepository.findByEmail(email).orElseThrow();
+        Patient p = patientRepository.findByDni(cip).orElseThrow();
+
+        UserActivity actividad = activityRepository
+                .findByDoctorIdAndPatientId(docUser.getDoctor().getId(), p.getId())
+                .orElse(new UserActivity()); // Si no existe, creamos uno nuevo
+
+        actividad.setDoctor(docUser.getDoctor());
+        actividad.setPatient(p);
+        actividad.setDescripcion("Última revisión del perfil");
+        actividad.setFechaAccion(LocalDateTime.now());
+
+        activityRepository.save(actividad);
+
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/recent-patients")
+    public ResponseEntity<?> obtenerPacientesRecientes(HttpServletRequest request) {
+        String email = (String) request.getAttribute("userEmail");
+        User docUser = userRepository.findByEmail(email).orElseThrow();
+
+        List<UserActivity> lista = activityRepository.findRecentByDoctor(docUser.getDoctor().getId());
+
+        return ResponseEntity.ok(lista.stream().limit(4).map(a -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("nombre", a.getPatient().getUser().getNombreCompleto());
+            map.put("cip", a.getPatient().getDni());
+            map.put("fecha", a.getFechaAccion());
+            map.put("descripcion", a.getDescripcion());
+            return map;
+        }).collect(Collectors.toList()));
     }
 }
