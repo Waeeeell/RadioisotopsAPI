@@ -111,13 +111,15 @@ public class AuthController {
     public ResponseEntity<?> resetPassword(@PathVariable Long id, @RequestBody Map<String, String> body) {
         return userRepository.findById(id).map(user -> {
             String nuevaPass = body.get("password");
-
             user.setPassword(nuevaPass);
             userRepository.save(user);
 
-            emailService.enviarPasswordTemporal(user.getEmail(), user.getNombreCompleto(), nuevaPass);
-
-            return ResponseEntity.ok("Contraseña actualizada correctamente. El médico recibirá un email en breve.");
+            try {
+                emailService.enviarPasswordTemporal(user.getEmail(), user.getNombreCompleto(), nuevaPass);
+                return ResponseEntity.ok("Contraseña actualizada y correo enviado.");
+            } catch (Exception e) {
+                return ResponseEntity.ok("Contraseña actualizada, pero el correo falló: " + e.getMessage());
+            }
         }).orElse(ResponseEntity.notFound().build());
     }
 }

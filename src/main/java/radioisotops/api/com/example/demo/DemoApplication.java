@@ -64,7 +64,7 @@ public class DemoApplication {
                 System.out.println("🗑️ Usuario de prueba 'Alex' eliminado para permitir nuevo test.");
             });
 
-            userRepository.findByEmail("alexgc.afk@gmail.com").ifPresent(user -> {
+            userRepository.findByEmail("2023_wael.zerrouk@iticbcn.cat").ifPresent(user -> {
                 userRepository.delete(user);
                 System.out.println("🗑️ Usuario de prueba 'Alex' eliminado para permitir nuevo test.");
             });
