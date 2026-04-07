@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/users")
-@CrossOrigin(origins = "*", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PATCH, RequestMethod.DELETE, RequestMethod.OPTIONS})
+@CrossOrigin(origins = "*")
 public class UserController {
 
     @Autowired
@@ -45,12 +45,16 @@ public class UserController {
 
             userRepository.save(nuevoUsuario);
 
-            emailService.enviarBienvenidaMedico(
-                    nuevoUsuario.getEmail(),
-                    nuevoUsuario.getNombreCompleto(),
-                    passwordParaEmail
-            );
-            return ResponseEntity.ok("Médico registrado correctamente y email enviado.");
+            try {
+                emailService.enviarBienvenidaMedico(
+                        nuevoUsuario.getEmail(),
+                        nuevoUsuario.getNombreCompleto(),
+                        passwordParaEmail
+                );
+                return ResponseEntity.ok("Médico registrado correctamente y email enviado.");
+            } catch (Exception e) {
+                return ResponseEntity.ok("Médico registrado, pero hubo un error al enviar el email: " + e.getMessage());
+            }
 
         } catch (Exception e) {
             e.printStackTrace();
