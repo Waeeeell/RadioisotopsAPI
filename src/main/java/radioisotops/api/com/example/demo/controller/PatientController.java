@@ -46,7 +46,6 @@ public class PatientController {
 
             Doctor doc = usuarioMedico.getDoctor();
 
-            // Registro de Usuario y Paciente (Tu lógica original)
             String cip = (String) datosPaciente.get("cip");
             User userPaciente = new User();
             userPaciente.setNombreCompleto((String) datosPaciente.get("nombreCompleto"));
@@ -71,24 +70,22 @@ public class PatientController {
 
             Patient patientGuardado = patientRepository.save(patient);
 
-            // --- LÓGICA DE TRATAMIENTO CON CONVERSIÓN ---
             Treatment treatment = new Treatment();
             treatment.setRadioisotopo((String) datosTratamiento.get("radioisotopo"));
 
             Object dosisObj = datosTratamiento.get("dosis");
-            String unidad = (String) datosTratamiento.get("unidad"); // Capturamos la unidad del Frontend
+            String unidad = (String) datosTratamiento.get("unidad");
 
             if (dosisObj != null && !dosisObj.toString().isEmpty()) {
                 double valorDosis = Double.parseDouble(dosisObj.toString());
                 double dosisEnMBq;
 
-                // Aplicamos conversión según tu Excel: 1 mCi = 37 MBq
                 if ("mCi".equalsIgnoreCase(unidad)) {
                     dosisEnMBq = valorDosis * 37.0;
                 } else if ("Ci".equalsIgnoreCase(unidad)) {
                     dosisEnMBq = valorDosis * 37000.0;
                 } else {
-                    dosisEnMBq = valorDosis; // Por defecto MBq
+                    dosisEnMBq = valorDosis;
                 }
                 treatment.setDosis(dosisEnMBq);
             } else {
@@ -98,15 +95,25 @@ public class PatientController {
             treatment.setFechaInicio(LocalDateTime.now());
             treatment.setPatient(patientGuardado);
             treatment.setDoctor(doc);
-            treatment.setInstrucciones("Alta inicial: Monitorización activa.");
+            treatment.setInstrucciones("Alta inicial: Monitorització activa.");
 
             treatmentRepository.save(treatment);
 
-            return ResponseEntity.ok("Alta procesada con éxito por el Dr/a. " + usuarioMedico.getNombreCompleto());
+            return ResponseEntity.ok("Alta processada amb èxit pel Dr/a. " + usuarioMedico.getNombreCompleto());
 
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(500).body("Error en el alta: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/count-total")
+    public ResponseEntity<Long> obtenerTotalPacientes() {
+        try {
+            long total = patientRepository.count();
+            return ResponseEntity.ok(total);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(0L);
         }
     }
 
@@ -125,14 +132,18 @@ public class PatientController {
                 double dosiInicial = t.getDosis();
                 double activitatActual = calcularActivitatActual(t.getRadioisotopo(), dosiInicial, t.getFechaInicio());
 
-                // Mostramos el valor actual calculado
-                dto.put("tratamiento", t.getRadioisotopo() + " (" + String.format("%.2f", activitatActual) + " MBq)");
+                // --- MEJORA DE NOMBRES ---
+                String isoOriginal = t.getRadioisotopo();
+                String isoBonito = isoOriginal;
+                if (isoOriginal.contains("I-131") || isoOriginal.contains("Iode")) isoBonito = "Iodo-131";
+                else if (isoOriginal.contains("Lu-177") || isoOriginal.contains("Lutenci")) isoBonito = "Luteci-177";
+                else if (isoOriginal.contains("Co-60") || isoOriginal.contains("Cobalt")) isoBonito = "Cobalt-60";
 
-                // El progreso es el % de actividad que queda respecto a la inicial
+                dto.put("tratamiento", isoBonito + " (" + String.format("%.2f", activitatActual) + " MBq)");
+
                 double progress = (activitatActual / dosiInicial) * 100;
                 dto.put("progreso", (int) Math.round(progress));
 
-                // Semáforo clínico del Excel
                 if (activitatActual > 400) {
                     dto.put("color", "red");
                     dto.put("estado", "CRÍTIC");
@@ -156,9 +167,11 @@ public class PatientController {
     private double calcularActivitatActual(String isotopo, double dosiInicial, LocalDateTime fechaInicio) {
         double teHores;
         if (isotopo.contains("I-131") || isotopo.contains("Iode")) {
-            teHores = 16.4616; // 0.6859 dies * 24h
+            teHores = 16.4616;
         } else if (isotopo.contains("Lu-177") || isotopo.contains("Lutenci")) {
-            teHores = 16.176;  // 0.674 dies * 24h
+            teHores = 16.176;
+        } else if (isotopo.contains("Co-60") || isotopo.contains("Cobalt")) {
+            teHores = 46164.0;
         } else {
             return dosiInicial;
         }
