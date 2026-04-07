@@ -267,16 +267,25 @@ public class PatientController {
     @GetMapping("/recent-patients")
     public ResponseEntity<?> obtenerPacientesRecientes(HttpServletRequest request) {
         String email = (String) request.getAttribute("userEmail");
-        User docUser = userRepository.findByEmail(email).orElseThrow();
+        User docUser = userRepository.findByEmail(email).orElse(null);
 
-        List<UserActivity> lista = activityRepository.findRecentByDoctor(docUser.getDoctor().getId());
-        return ResponseEntity.ok(lista.stream().limit(4).map(a -> {
-            Map<String, Object> map = new HashMap<>();
-            map.put("nombre", a.getPatient().getUser().getNombreCompleto());
-            map.put("cip", a.getPatient().getDni());
-            map.put("fecha", a.getFechaAccion());
-            map.put("descripcion", a.getDescripcion());
-            return map;
-        }).collect(Collectors.toList()));
+        if (docUser == null || docUser.getDoctor() == null) {
+            return ResponseEntity.ok(List.of());
+        }
+
+        try {
+            List<UserActivity> lista = activityRepository.findRecentByDoctor(docUser.getDoctor().getId());
+
+            return ResponseEntity.ok(lista.stream().limit(4).map(a -> {
+                Map<String, Object> map = new HashMap<>();
+                map.put("nombre", a.getPatient().getUser().getNombreCompleto());
+                map.put("cip", a.getPatient().getDni());
+                map.put("fecha", a.getFechaAccion());
+                map.put("descripcion", a.getDescripcion());
+                return map;
+            }).collect(Collectors.toList()));
+        } catch (Exception e) {
+            return ResponseEntity.ok(List.of());
+        }
     }
 }

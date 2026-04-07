@@ -48,34 +48,34 @@ public class EmailService {
     /**
      * Envío de bienvenida y credenciales para nuevos médicos registrados.
      */
+    // Reemplaza tu método enviarBienvenidaMedico por este:
     public void enviarBienvenidaMedico(String emailDestino, String nombreMedico, String passwordTemporal) {
         try {
+            System.out.println(">>> [MAIL] Preparando mensaje para: " + emailDestino);
+
             SimpleMailMessage mensaje = new SimpleMailMessage();
             mensaje.setFrom("radioisotopo.portal@gmail.com");
             mensaje.setTo(emailDestino);
-            mensaje.setSubject("Bienvenido al Portal Clinico - radioisotopo.portal");
+            mensaje.setSubject("Bienvenido al Portal Clinico");
+            mensaje.setText("Hola Dr. " + nombreMedico + ". Su clave es: " + passwordTemporal);
 
-            String contenido = "Estimado/a Dr./Dra. " + nombreMedico + ",\n\n" +
-                    "Nos complace informarle de que su cuenta de acceso a la plataforma de monitorizacion nuclear ha sido creada correctamente. A continuacion, le facilitamos sus credenciales iniciales:\n\n" +
-                    "• Usuario: " + emailDestino + "\n" +
-                    "• Clave temporal: " + passwordTemporal + "\n\n" +
-                    "Por motivos de seguridad y para garantizar la proteccion de los datos de nuestro hospital, le recomendamos cambiar su contrasena en su primer acceso.\n\n" +
-                    "Puede acceder a la plataforma desde el siguiente enlace:\n" +
-                    "https://radioisotopo.carriedo.cat\n\n" +
-                    "Si necesita asistencia adicional o tiene cualquier consulta, estaremos encantados de ayudarle.\n\n" +
-                    "Gracias por formar parte de radioisotopo.portal\n\n" +
-                    "Un cordial saludo.";
+            // LOG DE SEGURIDAD (Para verificar que las variables de entorno llegan bien)
+            // No imprimas la clave real por seguridad, solo confirma que no es nula
+            System.out.println(">>> [MAIL] Intentando conectar con smtp.gmail.com:587");
 
-            mensaje.setText(contenido);
-
-            System.out.println(" Iniciando envio de bienvenida para: " + emailDestino);
             mailSender.send(mensaje);
-            System.out.println(" Email de bienvenida enviado con exito.");
 
-        } catch (MailException e) {
-            System.err.println(" Fallo critico al enviar email de bienvenida:");
-            e.printStackTrace();
-            throw new RuntimeException("Error en el servidor de correo saliente");
+            System.out.println(">>> [MAIL] ¡EXITO! El servidor de Google ha aceptado el correo.");
+
+        } catch (Exception e) {
+            System.err.println(">>> [MAIL] ERROR CRITICO detectado:");
+            System.err.println(">>> Clase del error: " + e.getClass().getName());
+            System.err.println(">>> Mensaje: " + e.getMessage());
+            if (e.getCause() != null) {
+                System.err.println(">>> Causa original: " + e.getCause().getMessage());
+            }
+            // IMPORTANTE: Lanzamos la excepción para que el controlador la vea
+            throw new RuntimeException("Error en envio SMTP: " + e.getMessage());
         }
     }
 }
