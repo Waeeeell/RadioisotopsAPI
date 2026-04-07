@@ -19,56 +19,60 @@ public class ScheduledTaskService {
     @Autowired
     private NotificationRepository notificationRepository;
 
-    private boolean baseDatosLimpia = false;
-
-    // Se ejecuta cada hora (3600000 ms)
+    /**
+     * Tarea programada: Se ejecuta cada hora.
+     * Calcula el decaimiento de todos los pacientes y genera alertas si el riesgo baja.
+     */
     @Scheduled(fixedRate = 3600000)
     public void verificarDecaimientoYAlertas() {
-        if (!baseDatosLimpia) {
-            notificationRepository.deleteAll();
-            baseDatosLimpia = true;
-            System.out.println("Base de datos de notificaciones saneada.");
-        }
+        System.out.println("Iniciando ciclo de vigilancia nuclear: " + LocalDateTime.now());
 
         List<Patient> pacientes = patientRepository.findAll();
 
         for (Patient p : pacientes) {
+            // Buscamos el tratamiento mas reciente del paciente
             Treatment t = treatmentRepository.findFirstByPatientOrderByFechaInicioDesc(p);
 
             if (t != null && t.getRadioisotopo() != null) {
                 double activitatActual = calcularActivitatActual(t.getRadioisotopo(), t.getDosis(), t.getFechaInicio());
 
-                // Alerta automática: Si baja de 400 MBq y no tiene notificaciones de alta aún
-                if (activitatActual <= 400 && activitatActual > 390) {
-                    generarNotificacion(p, "El paciente " + p.getUser().getNombreCompleto() +
-                            " ha entrado en Fase de Decaimiento. Ya es seguro para el alta.");
+                // UMbral de seguridad: 400 MBq (Limite estandar para permitir contacto social limitado)
+                if (activitatActual <= 400 && activitatActual > 350) {
+                    generarAlertaSeguridad(p, "ALERTA: El paciente " + p.getUser().getNombreCompleto() +
+                            " ha bajado de los 400 MBq. Clasificado como Seguro para Alta / Fase de Decaimiento.");
                 }
+
+                // Alerta de seguridad extrema (Bateria o desconexion se gestionan en el Controller)
             }
         }
-        System.out.println("Vigilancia horaria completada: " + LocalDateTime.now());
+        System.out.println("Vigilancia completada con exito.");
     }
 
-    private void generarNotificacion(Patient p, String mensaje) {
-        boolean yaExiste = notificationRepository.existsByPatientIdAndLeidaFalse(p.getId());
+    private void generarAlertaSeguridad(Patient p, String mensaje) {
+        // Evitamos duplicar alertas no leidas para no saturar al medico
+        boolean yaExisteAlertaActiva = notificationRepository.existsByPatientIdAndLeidaFalse(p.getId());
 
-        if (!yaExiste) {
+        if (!yaExisteAlertaActiva) {
             Notification nota = new Notification();
             nota.setMensaje(mensaje);
             nota.setFechaEnvio(LocalDateTime.now());
             nota.setLeida(false);
             nota.setPatient(p);
             nota.setDoctor(p.getDoctorAsignado());
+
             notificationRepository.save(nota);
-            System.out.println("Notificación generada para: " + p.getUser().getNombreCompleto());
+            System.out.println("Notificacion de seguridad enviada para: " + p.getUser().getNombreCompleto());
         }
     }
 
-    // Usamos la misma lógica del Excel que pusimos en el Controller
+    /**
+     * Logica de decaimiento fisico real A = A0 * 0.5^(t/T1/2)
+     */
     private double calcularActivitatActual(String isotopo, double dosiInicial, LocalDateTime fechaInicio) {
         double tMedHores;
-        if (isotopo.contains("I-131")) tMedHores = 192.48;
-        else if (isotopo.contains("Lu-177")) tMedHores = 159.36;
-        else if (isotopo.contains("Co-60")) tMedHores = 46164.0;
+        if (isotopo.contains("I-131") || isotopo.contains("Iodo")) tMedHores = 192.48;
+        else if (isotopo.contains("Lu-177") || isotopo.contains("Lutecio")) tMedHores = 159.36;
+        else if (isotopo.contains("Co-60") || isotopo.contains("Cobalto")) tMedHores = 46164.0;
         else return dosiInicial;
 
         long hores = java.time.Duration.between(fechaInicio, LocalDateTime.now()).toHours();

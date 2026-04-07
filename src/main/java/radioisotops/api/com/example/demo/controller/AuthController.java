@@ -17,7 +17,12 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*", allowedHeaders = "*")
+// Configuración robusta de CORS para evitar bloqueos del Worker
+@CrossOrigin(
+        origins = "*",
+        allowedHeaders = "*",
+        methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.OPTIONS}
+)
 public class AuthController {
 
     @Autowired
@@ -29,6 +34,9 @@ public class AuthController {
     @Autowired
     private EmailService emailService;
 
+    /**
+     * LOGIN DE USUARIOS
+     */
     @PostMapping("/login")
     public ResponseEntity<?> iniciarSesion(@RequestBody LoginRequest loginRequest) {
         Optional<User> usuarioOpt = userRepository.findByEmail(loginRequest.getEmail());
@@ -63,6 +71,9 @@ public class AuthController {
         return ResponseEntity.status(401).body("Credenciales incorrectas");
     }
 
+    /**
+     * OBTENER DATOS DEL USUARIO LOGUEADO
+     */
     @GetMapping("/me")
     public ResponseEntity<?> obtenerUsuarioActual(HttpServletRequest request) {
         String email = (String) request.getAttribute("userEmail");
@@ -89,36 +100,48 @@ public class AuthController {
                 .orElse(ResponseEntity.status(404).build());
     }
 
+    /**
+     * LISTADO DE MÉDICOS PARA EL PANEL DE AUDITORÍA
+     */
     @GetMapping("/doctores")
     public ResponseEntity<List<User>> listarDoctores() {
         return ResponseEntity.ok(userRepository.findByRol("MEDICO"));
     }
 
-    @PatchMapping("/doctor/{id}/status")
+    /**
+     * CAMBIO DE ESTADO (SUSPENDER/ACTIVAR)
+     * Cambiado a @PostMapping para evitar problemas de CORS con PATCH
+     */
+    @PostMapping("/doctor/{id}/status")
     public ResponseEntity<?> cambiarEstado(@PathVariable Long id, @RequestBody Map<String, String> body) {
         return userRepository.findById(id).map(user -> {
             user.setEstado(body.get("estado"));
             userRepository.save(user);
-            return ResponseEntity.ok("Estado actualizado");
+            return ResponseEntity.ok("Estado actualizado correctamente");
         }).orElse(ResponseEntity.notFound().build());
     }
 
     /**
      * RESET DE CONTRASEÑA
-     * Cambia la pass en DB y dispara el correo de forma asíncrona.
+     * Cambiado a @PostMapping. Flujo síncrono para garantizar envío de cabeceras.
      */
-    @PatchMapping("/doctor/{id}/password")
+    @PostMapping("/doctor/{id}/password")
     public ResponseEntity<?> resetPassword(@PathVariable Long id, @RequestBody Map<String, String> body) {
         return userRepository.findById(id).map(user -> {
             String nuevaPass = body.get("password");
+
+            // 1. Persistencia en base de datos
             user.setPassword(nuevaPass);
             userRepository.save(user);
 
+            // 2. Intento de envío de email
             try {
+                // Síncrono para que el Worker de Cloudflare no cierre la conexión
                 emailService.enviarPasswordTemporal(user.getEmail(), user.getNombreCompleto(), nuevaPass);
-                return ResponseEntity.ok("Contraseña actualizada y correo enviado.");
+                return ResponseEntity.ok("Contrasena actualizada y correo enviado.");
             } catch (Exception e) {
-                return ResponseEntity.ok("Contraseña actualizada, pero el correo falló: " + e.getMessage());
+                // Respondemos con éxito parcial para no confundir al administrador
+                return ResponseEntity.ok("Contrasena actualizada en sistema, pero el servidor de correo fallo.");
             }
         }).orElse(ResponseEntity.notFound().build());
     }
