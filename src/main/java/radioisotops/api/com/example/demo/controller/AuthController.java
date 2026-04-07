@@ -17,7 +17,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*", allowedHeaders = "*") // Esto evita que React Native bloquee la conexión
+@CrossOrigin(origins = "*", allowedHeaders = "*")
 public class AuthController {
 
     @Autowired
@@ -31,19 +31,15 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> iniciarSesion(@RequestBody LoginRequest loginRequest) {
-
         Optional<User> usuarioOpt = userRepository.findByEmail(loginRequest.getEmail());
 
         if (usuarioOpt.isPresent()) {
             User usuario = usuarioOpt.get();
 
             if (usuario.getPassword().equals(loginRequest.getPassword())) {
-
-                // Preparamos los datos base
                 String especialidad = null;
                 String colegiado = null;
 
-                // Si es médico, buscamos sus datos extra a través de la relación
                 if ("MEDICO".equals(usuario.getRol()) && usuario.getDoctor() != null) {
                     especialidad = usuario.getDoctor().getEspecialidad();
                     colegiado = usuario.getDoctor().getColegiadoNum();
@@ -51,7 +47,6 @@ public class AuthController {
 
                 String token = jwtUtil.generateToken(usuario.getEmail());
 
-                // Creamos el paquete completo para React
                 LoginResponseDTO respuesta = new LoginResponseDTO(
                         usuario.getId(),
                         usuario.getEmail(),
@@ -102,12 +97,16 @@ public class AuthController {
     @PatchMapping("/doctor/{id}/status")
     public ResponseEntity<?> cambiarEstado(@PathVariable Long id, @RequestBody Map<String, String> body) {
         return userRepository.findById(id).map(user -> {
-            user.setEstado(body.get("estado")); // "ACTIVO" o "INACTIVO"
+            user.setEstado(body.get("estado"));
             userRepository.save(user);
             return ResponseEntity.ok("Estado actualizado");
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    /**
+     * RESET DE CONTRASEÑA
+     * Cambia la pass en DB y dispara el correo de forma asíncrona.
+     */
     @PatchMapping("/doctor/{id}/password")
     public ResponseEntity<?> resetPassword(@PathVariable Long id, @RequestBody Map<String, String> body) {
         return userRepository.findById(id).map(user -> {
@@ -116,13 +115,9 @@ public class AuthController {
             user.setPassword(nuevaPass);
             userRepository.save(user);
 
-            try {
-                emailService.enviarPasswordTemporal(user.getEmail(), user.getNombreCompleto(), nuevaPass);
-                return ResponseEntity.ok("Contraseña actualizada y correo enviado.");
-            } catch (Exception e) {
-                return ResponseEntity.status(500).body("Error al enviar el correo: " + e.getMessage());
-            }
+            emailService.enviarPasswordTemporal(user.getEmail(), user.getNombreCompleto(), nuevaPass);
 
+            return ResponseEntity.ok("Contraseña actualizada correctamente. El médico recibirá un email en breve.");
         }).orElse(ResponseEntity.notFound().build());
     }
 }

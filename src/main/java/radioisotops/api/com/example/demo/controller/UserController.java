@@ -45,15 +45,11 @@ public class UserController {
 
             userRepository.save(nuevoUsuario);
 
-            try {
-                emailService.enviarBienvenidaMedico(
-                        nuevoUsuario.getEmail(),
-                        nuevoUsuario.getNombreCompleto(),
-                        passwordParaEmail
-                );
-            } catch (Exception e) {
-                return ResponseEntity.ok("Médico registrado, pero hubo un error al enviar el email: " + e.getMessage());
-            }
+            emailService.enviarBienvenidaMedico(
+                    nuevoUsuario.getEmail(),
+                    nuevoUsuario.getNombreCompleto(),
+                    passwordParaEmail
+            );
             return ResponseEntity.ok("Médico registrado correctamente y email enviado.");
 
         } catch (Exception e) {

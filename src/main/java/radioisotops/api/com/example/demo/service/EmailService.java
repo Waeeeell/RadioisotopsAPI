@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -12,6 +13,7 @@ public class EmailService {
     @Autowired
     private JavaMailSender mailSender;
 
+    @Async
     public void enviarPasswordTemporal(String emailDestino, String nombreMedico, String nuevaPassword) {
         try {
             SimpleMailMessage mensaje = new SimpleMailMessage();
@@ -35,10 +37,10 @@ public class EmailService {
         } catch (MailException e) {
             System.err.println("ERROR AL ENVIAR EMAIL:");
             e.printStackTrace();
-            throw new RuntimeException("Error al enviar email: " + e.getMessage(), e);
         }
     }
 
+    @Async
     public void enviarBienvenidaMedico(String emailDestino, String nombreMedico, String passwordTemporal) {
         try {
             SimpleMailMessage mensaje = new SimpleMailMessage();
@@ -66,7 +68,6 @@ public class EmailService {
         } catch (MailException e) {
             System.err.println("ERROR AL ENVIAR EMAIL:");
             e.printStackTrace();
-            throw new RuntimeException("Error al enviar email: " + e.getMessage(), e);
         }
     }
 }
