@@ -1,4 +1,4 @@
-package radioisotops.api.com.example.demo.generator;
+package radioisotops.api.com.example.demo.service;
 
 import com.lowagie.text.*;
 import com.lowagie.text.pdf.PdfContentByte;
@@ -8,7 +8,7 @@ import radioisotops.api.com.example.demo.model.Patient;
 import radioisotops.api.com.example.demo.model.Treatment;
 
 import jakarta.servlet.http.HttpServletResponse;
-import java.awt.Color;
+
 import java.io.IOException;
 
 @Service
