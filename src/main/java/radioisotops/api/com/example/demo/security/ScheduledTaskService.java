@@ -1,4 +1,4 @@
-package radioisotops.api.com.example.demo.service;
+package radioisotops.api.com.example.demo.security;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -19,9 +19,17 @@ public class ScheduledTaskService {
     @Autowired
     private NotificationRepository notificationRepository;
 
+    private boolean baseDatosLimpia = false;
+
     // Se ejecuta cada hora (3600000 ms)
     @Scheduled(fixedRate = 3600000)
     public void verificarDecaimientoYAlertas() {
+        if (!baseDatosLimpia) {
+            notificationRepository.deleteAll();
+            baseDatosLimpia = true;
+            System.out.println("Base de datos de notificaciones saneada.");
+        }
+
         List<Patient> pacientes = patientRepository.findAll();
 
         for (Patient p : pacientes) {
@@ -41,13 +49,18 @@ public class ScheduledTaskService {
     }
 
     private void generarNotificacion(Patient p, String mensaje) {
-        Notification nota = new Notification();
-        nota.setMensaje(mensaje);
-        nota.setFechaEnvio(LocalDateTime.now());
-        nota.setLeida(false);
-        nota.setPatient(p);
-        nota.setDoctor(p.getDoctorAsignado());
-        notificationRepository.save(nota);
+        boolean yaExiste = notificationRepository.existsByPatientIdAndLeidaFalse(p.getId());
+
+        if (!yaExiste) {
+            Notification nota = new Notification();
+            nota.setMensaje(mensaje);
+            nota.setFechaEnvio(LocalDateTime.now());
+            nota.setLeida(false);
+            nota.setPatient(p);
+            nota.setDoctor(p.getDoctorAsignado());
+            notificationRepository.save(nota);
+            System.out.println("Notificación generada para: " + p.getUser().getNombreCompleto());
+        }
     }
 
     // Usamos la misma lógica del Excel que pusimos en el Controller

@@ -7,6 +7,7 @@ import java.util.List;
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
     List<Notification> findByDoctorIdOrderByFechaEnvioDesc(Long doctorId);
     long countByDoctorIdAndLeidaFalse(Long doctorId);
+    boolean existsByPatientIdAndLeidaFalse(Long patientId);
 
     List<Notification> findByPatientDniAndLeidaFalse(String dni);
 }
