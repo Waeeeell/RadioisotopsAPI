@@ -22,10 +22,21 @@ public class PatientController {
 
     @Autowired
     private UserRepository userRepository;
+
     @Autowired
     private PatientRepository patientRepository;
+
     @Autowired
     private TreatmentRepository treatmentRepository;
+
+    @Autowired
+    private DeviceRepository deviceRepository;
+
+    @Autowired
+    private NotificationRepository notificationRepository;
+
+    @Autowired
+    private PdfGeneratorService pdfService;
 
     @PostMapping("/register-full")
     @Transactional
@@ -66,6 +77,9 @@ public class PatientController {
                 patient.setFechaNacimiento(LocalDate.parse(fechaNacStr));
             }
 
+            // Asignamos el médico al paciente para las notificaciones
+            patient.setDoctorAsignado(doc);
+
             Patient patientGuardado = patientRepository.save(patient);
 
             Treatment treatment = new Treatment();
@@ -78,7 +92,6 @@ public class PatientController {
                 double valorDosis = Double.parseDouble(dosisObj.toString());
                 double dosisEnMBq;
 
-                // Conversión 1 mCi = 37 MBq según Excel
                 if ("mCi".equalsIgnoreCase(unidad)) {
                     dosisEnMBq = valorDosis * 37.0;
                 } else if ("Ci".equalsIgnoreCase(unidad)) {
@@ -94,24 +107,15 @@ public class PatientController {
             treatment.setFechaInicio(LocalDateTime.now());
             treatment.setPatient(patientGuardado);
             treatment.setDoctor(doc);
-            treatment.setInstrucciones("Monitorització activa basada en decaïment físic real.");
+            treatment.setInstrucciones("Monitorización activa basada en decaimiento físico real.");
 
             treatmentRepository.save(treatment);
 
-            return ResponseEntity.ok("Alta processada amb èxit pel Dr/a. " + usuarioMedico.getNombreCompleto());
+            return ResponseEntity.ok("Alta procesada con éxito por el Dr/a. " + usuarioMedico.getNombreCompleto());
 
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(500).body("Error en el alta: " + e.getMessage());
-        }
-    }
-
-    @GetMapping("/count-total")
-    public ResponseEntity<Long> obtenerTotalPacientes() {
-        try {
-            return ResponseEntity.ok(patientRepository.count());
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body(0L);
         }
     }
 
@@ -121,8 +125,18 @@ public class PatientController {
 
         return ResponseEntity.ok(pacientes.stream().map(p -> {
             Map<String, Object> dto = new HashMap<>();
-            dto.put("nombre", p.getUser() != null ? p.getUser().getNombreCompleto() : "Desconegut");
+            dto.put("nombre", p.getUser() != null ? p.getUser().getNombreCompleto() : "Desconocido");
             dto.put("cip", p.getDni());
+            dto.put("valorEmocional", p.getValorEmocional());
+
+            Device dev = p.getDevice();
+            if (dev != null) {
+                dto.put("watchEstado", dev.getEstado());
+                dto.put("watchUltimaSinc", dev.getUltimaConexion());
+                dto.put("watchSerie", dev.getSerieNum());
+            } else {
+                dto.put("watchEstado", "No vinculado");
+            }
 
             Treatment t = treatmentRepository.findFirstByPatientOrderByFechaInicioDesc(p);
 
@@ -133,31 +147,40 @@ public class PatientController {
                 String isoOriginal = t.getRadioisotopo();
                 String isoBonito = isoOriginal;
                 if (isoOriginal.contains("I-131")) isoBonito = "Iodo-131";
-                else if (isoOriginal.contains("Lu-177")) isoBonito = "Luteci-177";
-                else if (isoOriginal.contains("Co-60")) isoBonito = "Cobalt-60";
+                else if (isoOriginal.contains("Lu-177")) isoBonito = "Lutecio-177";
+                else if (isoOriginal.contains("Co-60")) isoBonito = "Cobalto-60";
 
                 dto.put("tratamiento", isoBonito + " (" + String.format("%.2f", activitatActual) + " MBq)");
 
-                // El progreso es la actividad que queda respecto a la inicial
                 double progress = (activitatActual / dosiInicial) * 100;
                 dto.put("progreso", (int) Math.round(progress));
 
-                // --- UMBRALES REALES EXCEL DHM ---
                 if (activitatActual > 400) {
                     dto.put("color", "red");
-                    dto.put("estado", "INGRESSAT");
+                    dto.put("estado", "Fase Inicial");
                 } else if (activitatActual > 1) {
                     dto.put("color", "yellow");
-                    dto.put("estado", "AMBULATORI");
+                    dto.put("estado", "Fase de Decaimiento");
+
+                    // Lógica de notificación automática de decaimiento
+                    if (activitatActual <= 400 && activitatActual > 395) {
+                        Notification avisoAlta = new Notification();
+                        avisoAlta.setMensaje("El paciente " + p.getUser().getNombreCompleto() + " ha entrado en Fase de Decaimiento. Ya es seguro para el alta ambulatoria.");
+                        avisoAlta.setFechaEnvio(LocalDateTime.now());
+                        avisoAlta.setLeida(false);
+                        avisoAlta.setPatient(p);
+                        avisoAlta.setDoctor(p.getDoctorAsignado());
+                        notificationRepository.save(avisoAlta);
+                    }
                 } else {
                     dto.put("color", "green");
-                    dto.put("estado", "EXEMPT");
+                    dto.put("estado", "Sin riesgo");
                 }
             } else {
-                dto.put("tratamiento", "Sense tractament");
+                dto.put("tratamiento", "Sin tratamiento");
                 dto.put("progreso", 0);
                 dto.put("color", "gray");
-                dto.put("estado", "PENDENT");
+                dto.put("estado", "PENDIENTE");
             }
             return dto;
         }).collect(Collectors.toList()));
@@ -165,22 +188,91 @@ public class PatientController {
 
     private double calcularActivitatActual(String isotopo, double dosiInicial, LocalDateTime fechaInicio) {
         double tMedHores;
-
-        // Valores extraídos de tu tabla de decaimiento
         if (isotopo.contains("I-131") || isotopo.contains("Iodo")) {
-            tMedHores = 192.48; // 8.02 días * 24h
+            tMedHores = 192.48;
         } else if (isotopo.contains("Lu-177") || isotopo.contains("Lutecio")) {
-            tMedHores = 159.36; // 6.64 días * 24h
+            tMedHores = 159.36;
         } else if (isotopo.contains("Co-60") || isotopo.contains("Cobalto")) {
-            tMedHores = 46164.0; // 5.27 años * 365 días * 24h
-        }  else {
+            tMedHores = 46164.0;
+        } else {
             return dosiInicial;
         }
 
-        // t = tiempo transcurrido desde la administración
         long horesTranscorregudes = java.time.Duration.between(fechaInicio, LocalDateTime.now()).toHours();
-
-        // Fórmula exponencial: A(t) = A0 * 0.5^(t/T1/2)
         return dosiInicial * Math.pow(0.5, (double) horesTranscorregudes / tMedHores);
+    }
+
+    @PostMapping("/{cip}/update-mood")
+    public ResponseEntity<?> actualizarEstadoEmocional(@PathVariable String cip, @RequestBody Map<String, Integer> payload) {
+        return patientRepository.findByDni(cip).map(p -> {
+            Integer nuevoValor = payload.get("valor");
+            if (nuevoValor == null || nuevoValor < 0 || nuevoValor > 100) return ResponseEntity.badRequest().body("Valor no válido");
+            p.setValorEmocional(nuevoValor);
+            patientRepository.save(p);
+            return ResponseEntity.ok("Estado emocional actualizado.");
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/{cip}/update-watch")
+    @Transactional
+    public ResponseEntity<?> actualizarSmartwatch(@PathVariable String cip, @RequestBody Map<String, Object> payload) {
+        return deviceRepository.findByPatientDni(cip).map(device -> {
+            // Notificación por batería baja
+            if (payload.containsKey("estado") && payload.get("estado").toString().contains("Batería Baja")) {
+                Notification nota = new Notification();
+                nota.setMensaje("¡Atención! El Smartwatch de " + device.getPatient().getUser().getNombreCompleto() + " tiene batería baja.");
+                nota.setFechaEnvio(LocalDateTime.now());
+                nota.setLeida(false);
+                nota.setPatient(device.getPatient());
+                nota.setDoctor(device.getPatient().getDoctorAsignado());
+                notificationRepository.save(nota);
+            }
+
+            if (payload.containsKey("estado")) {
+                device.setEstado((String) payload.get("estado"));
+            }
+            device.setUltimaConexion(LocalDateTime.now());
+            deviceRepository.save(device);
+            return ResponseEntity.ok("Dispositivo " + device.getSerieNum() + " actualizado.");
+        }).orElse(ResponseEntity.status(404).body("No hay dispositivo para este paciente."));
+    }
+
+    @PostMapping("/{cip}/send-instruction")
+    @Transactional
+    public ResponseEntity<?> enviarInstruccionAlReloj(@PathVariable String cip, @RequestBody Map<String, String> payload) {
+        return patientRepository.findByDni(cip).map(p -> {
+            String mensajeTexto = payload.get("mensaje");
+
+            if (mensajeTexto == null || mensajeTexto.isEmpty()) {
+                return ResponseEntity.badRequest().body("El mensaje no puede estar vacío");
+            }
+
+            Notification notaParaReloj = new Notification();
+            notaParaReloj.setMensaje("CONSEJO MÉDICO: " + mensajeTexto);
+            notaParaReloj.setFechaEnvio(LocalDateTime.now());
+            notaParaReloj.setLeida(false);
+            notaParaReloj.setPatient(p);
+            notaParaReloj.setDoctor(p.getDoctorAsignado());
+
+            notificationRepository.save(notaParaReloj);
+
+            return ResponseEntity.ok("Mensaje enviado a la cola del Smartwatch de " + p.getUser().getNombreCompleto());
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/{cip}/informe-alta")
+    public void descargarPdf(@PathVariable String cip, HttpServletResponse response) throws IOException {
+        response.setContentType("application/pdf");
+        String headerKey = "Content-Disposition";
+        String headerValue = "attachment; filename=Informe_Alta_" + cip + ".pdf";
+        response.setHeader(headerKey, headerValue);
+
+        Patient p = patientRepository.findByDni(cip).orElseThrow();
+        Treatment t = treatmentRepository.findFirstByPatientOrderByFechaInicioDesc(p);
+
+        double act = calcularActivitatActual(t.getRadioisotopo(), t.getDosis(), t.getFechaInicio());
+        String estado = (act > 400) ? "Fase Inicial" : (act > 1) ? "Fase de Decaimiento" : "Sin riesgo / EXEMPT";
+
+        pdfService.exportarInformeAlta(response, p, t, act, estado);
     }
 }

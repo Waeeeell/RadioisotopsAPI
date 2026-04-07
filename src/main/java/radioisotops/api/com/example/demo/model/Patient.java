@@ -20,17 +20,23 @@ public class Patient {
     @Column(name = "num_ss", nullable = false, unique = true)
     private String numSs;
 
-    // --- 1ª RELACIÓN: CON USER (FOREIGN KEY) ---
+    @Column(name = "valor_emocional")
+    private Integer valorEmocional = 50;
+
+    // RELACIÓN: CON USER (FOREIGN KEY) ---
     // Un paciente es un usuario
     @OneToOne
     @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
     private User user;
 
-    // --- 2ª RELACIÓN: CON DOCTOR (FOREIGN KEY) ---
+    // RELACIÓN: CON DOCTOR (FOREIGN KEY) ---
     // Muchos pacientes pueden estar asignados a un mismo Doctor
     @ManyToOne
     @JoinColumn(name = "doctor_id", referencedColumnName = "id") // Esta es tu "Id_Medico_Asign" del draw.io
     private Doctor doctorAsignado;
+
+    @OneToOne(mappedBy = "patient", cascade = CascadeType.ALL)
+    private Device device;
 
     // --- Constructores ---
     public Patient() {
@@ -78,6 +84,10 @@ public class Patient {
         this.numSs = numSs;
     }
 
+    public Integer getValorEmocional() { return valorEmocional; }
+
+    public void setValorEmocional(Integer valorEmocional) { this.valorEmocional = valorEmocional; }
+
     public User getUser() {
         return user;
     }
@@ -93,4 +103,8 @@ public class Patient {
     public void setDoctorAsignado(Doctor doctorAsignado) {
         this.doctorAsignado = doctorAsignado;
     }
+
+    public Device getDevice() { return device; }
+
+    public void setDevice(Device device) { this.device = device; }
 }

@@ -12,6 +12,7 @@ import radioisotops.api.com.example.demo.repository.DoctorRepository;
 import java.time.LocalDateTime;
 
 @SpringBootApplication
+@EnableScheduling
 public class DemoApplication {
 
     public static void main(String[] args) {
