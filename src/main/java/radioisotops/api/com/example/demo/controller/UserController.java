@@ -12,7 +12,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
-// Configuración robusta de CORS para que el Worker de Cloudflare no bloquee el POST
 @CrossOrigin(
         origins = "*",
         allowedHeaders = "*",
@@ -27,51 +26,62 @@ public class UserController {
     private EmailService emailService;
 
     /**
-     * Registro de médicos con envío de email automático.
+     * Registro de médicos con envío de email asíncrono.
      */
     @PostMapping("/register-doctor")
     public ResponseEntity<?> registrarDoctor(@RequestBody User nuevoUsuario, HttpServletRequest request) {
         try {
-            // 1. Verificación de autorización por token (inyectado por el Filter)
+            // 1. Verificación de autorización por token
             String adminEmail = (String) request.getAttribute("userEmail");
             if (adminEmail == null) {
-                return ResponseEntity.status(401).body(Map.of("error", "No autorizado"));
+                return ResponseEntity.status(401).body(Map.of("error", "Sesión no válida o no autorizada"));
             }
 
-            // 2. Comprobar si el correo ya está registrado
+            // 2. Comprobar si el correo ya está registrado para evitar duplicados
             if (userRepository.findByEmail(nuevoUsuario.getEmail()).isPresent()) {
-                return ResponseEntity.badRequest().body(Map.of("error", "El email ya existe."));
+                return ResponseEntity.badRequest().body(Map.of("error", "El correo electrónico ya está registrado en el sistema."));
             }
 
-            // 3. Preparar datos del nuevo facultativo
-            String passwordParaEmail = nuevoUsuario.getPassword();
+            // 3. Configurar metadatos del usuario
+            String passwordTemporal = nuevoUsuario.getPassword();
             nuevoUsuario.setFechaRegistro(LocalDateTime.now());
             nuevoUsuario.setRol("MEDICO");
             nuevoUsuario.setEstado("ACTIVO");
 
+            // Vincular la entidad Doctor si viene en el cuerpo
             if (nuevoUsuario.getDoctor() != null) {
                 nuevoUsuario.getDoctor().setUser(nuevoUsuario);
             }
 
-            // 4. Guardar en Base de Datos
+            // 4. Persistencia en Base de Datos
             userRepository.save(nuevoUsuario);
 
-            // 5. Envío de Email (Síncrono para mantener estabilidad de la conexión con el Proxy)
+            // 5. Envío de Email (Se ejecuta en segundo plano gracias a @Async en el Service)
             try {
                 emailService.enviarBienvenidaMedico(
                         nuevoUsuario.getEmail(),
                         nuevoUsuario.getNombreCompleto(),
-                        passwordParaEmail
+                        passwordTemporal
                 );
-                return ResponseEntity.ok(Map.of("message", "Médico registrado correctamente y email enviado."));
+
+                // Respondemos inmediatamente sin esperar a que el email termine de enviarse
+                return ResponseEntity.ok(Map.of(
+                        "message", "Médico registrado correctamente y proceso de email iniciado."
+                ));
+
             } catch (Exception e) {
-                // Si falla el email, no revertimos el registro, pero avisamos al Admin
-                return ResponseEntity.ok(Map.of("message", "Médico registrado en sistema, pero hubo un error al enviar el email informativo."));
+                // Caso poco probable con @Async, pero capturamos por seguridad
+                return ResponseEntity.ok(Map.of(
+                        "message", "Médico registrado, pero el servicio de mensajería no está disponible temporalmente."
+                ));
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(500).body(Map.of("error", "Error interno al registrar médico: " + e.getMessage()));
+            // Logueamos el error en Render
+            System.err.println("Error en registro de médico: " + e.getMessage());
+            return ResponseEntity.status(500).body(Map.of(
+                    "error", "Fallo crítico en el servidor: " + e.getMessage()
+            ));
         }
     }
 }
