@@ -51,10 +51,10 @@ public class UserController {
                         nuevoUsuario.getNombreCompleto(),
                         passwordParaEmail
                 );
-                return ResponseEntity.ok("Médico registrado correctamente y email enviado.");
             } catch (Exception e) {
                 return ResponseEntity.ok("Médico registrado, pero hubo un error al enviar el email: " + e.getMessage());
             }
+            return ResponseEntity.ok("Médico registrado correctamente y email enviado.");
 
         } catch (Exception e) {
             e.printStackTrace();
