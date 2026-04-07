@@ -9,6 +9,7 @@ import radioisotops.api.com.example.demo.model.Doctor;
 import radioisotops.api.com.example.demo.model.User;
 import radioisotops.api.com.example.demo.repository.UserRepository;
 import radioisotops.api.com.example.demo.repository.DoctorRepository;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import java.time.LocalDateTime;
 
 @SpringBootApplication

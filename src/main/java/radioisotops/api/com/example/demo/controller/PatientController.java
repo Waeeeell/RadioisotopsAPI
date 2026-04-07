@@ -7,6 +7,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import radioisotops.api.com.example.demo.model.*;
 import radioisotops.api.com.example.demo.repository.*;
+import radioisotops.api.com.example.demo.service.PdfGeneratorService;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
