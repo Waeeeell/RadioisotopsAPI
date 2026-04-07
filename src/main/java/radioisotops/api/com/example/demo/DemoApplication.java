@@ -5,6 +5,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 
+import org.springframework.scheduling.annotation.EnableAsync;
 import radioisotops.api.com.example.demo.model.Doctor;
 import radioisotops.api.com.example.demo.model.User;
 import radioisotops.api.com.example.demo.repository.UserRepository;
@@ -13,6 +14,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import java.time.LocalDateTime;
 
 @SpringBootApplication
+@EnableAsync
 @EnableScheduling
 public class DemoApplication {
 
@@ -56,6 +58,11 @@ public class DemoApplication {
                 
                 System.out.println("✅ Administrador creado con éxito.");
             }
+
+            userRepository.findByEmail("alexgonca2009@gmail.com").ifPresent(user -> {
+                userRepository.delete(user);
+                System.out.println("🗑️ Usuario de prueba 'Alex' eliminado para permitir nuevo test.");
+            });
             
             System.out.println("🚀 Verificación de usuarios iniciales completada.");
         };
