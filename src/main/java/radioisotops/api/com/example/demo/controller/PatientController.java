@@ -164,17 +164,6 @@ public class PatientController {
                 } else if (activitatActual > 1) {
                     dto.put("color", "yellow");
                     dto.put("estado", "Fase de Decaimiento");
-
-                    // Lógica de notificación automática de decaimiento
-                    if (activitatActual <= 400 && activitatActual > 395) {
-                        Notification avisoAlta = new Notification();
-                        avisoAlta.setMensaje("El paciente " + p.getUser().getNombreCompleto() + " ha entrado en Fase de Decaimiento. Ya es seguro para el alta ambulatoria.");
-                        avisoAlta.setFechaEnvio(LocalDateTime.now());
-                        avisoAlta.setLeida(false);
-                        avisoAlta.setPatient(p);
-                        avisoAlta.setDoctor(p.getDoctorAsignado());
-                        notificationRepository.save(avisoAlta);
-                    }
                 } else {
                     dto.put("color", "green");
                     dto.put("estado", "Sin riesgo");
@@ -277,5 +266,10 @@ public class PatientController {
         String estado = (act > 400) ? "Fase Inicial" : (act > 1) ? "Fase de Decaimiento" : "Sin riesgo / EXEMPT";
 
         pdfService.exportarInformeAlta(response, p, t, act, estado);
+    }
+
+    @GetMapping("/count-total")
+    public ResponseEntity<Long> obtenerTotalPacientes() {
+        return ResponseEntity.ok(patientRepository.count());
     }
 }

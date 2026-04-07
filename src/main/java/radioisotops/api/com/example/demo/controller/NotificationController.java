@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.*;
 import radioisotops.api.com.example.demo.model.*;
 import radioisotops.api.com.example.demo.repository.*;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -62,5 +64,24 @@ public class NotificationController {
         notificationRepository.saveAll(instrucciones);
 
         return ResponseEntity.ok(instrucciones);
+    }
+
+    @GetMapping("/count-today")
+    public ResponseEntity<?> contarAlertasHoy(HttpServletRequest request) {
+        String email = (String) request.getAttribute("userEmail");
+        User user = userRepository.findByEmail(email).orElse(null);
+
+        if (user == null || user.getDoctor() == null) {
+            return ResponseEntity.ok(Map.of("todayCount", 0));
+        }
+
+        LocalDateTime inicioHoy = LocalDate.now().atStartOfDay();
+
+        long count = notificationRepository.countByDoctorIdAndFechaEnvioAfter(
+                user.getDoctor().getId(),
+                inicioHoy
+        );
+
+        return ResponseEntity.ok(Map.of("todayCount", count));
     }
 }
