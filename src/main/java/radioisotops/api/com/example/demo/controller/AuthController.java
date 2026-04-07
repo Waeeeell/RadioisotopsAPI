@@ -10,6 +10,8 @@ import radioisotops.api.com.example.demo.model.User;
 import radioisotops.api.com.example.demo.repository.UserRepository;
 import radioisotops.api.com.example.demo.security.JwtUtil;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -86,5 +88,28 @@ public class AuthController {
                     ));
                 })
                 .orElse(ResponseEntity.status(404).build());
+    }
+
+    @GetMapping("/doctores")
+    public ResponseEntity<List<User>> listarDoctores() {
+        return ResponseEntity.ok(userRepository.findByRol("MEDICO"));
+    }
+
+    @PatchMapping("/doctor/{id}/status")
+    public ResponseEntity<?> cambiarEstado(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        return userRepository.findById(id).map(user -> {
+            user.setEstado(body.get("estado")); // "ACTIVO" o "INACTIVO"
+            userRepository.save(user);
+            return ResponseEntity.ok("Estado actualizado");
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @PatchMapping("/doctor/{id}/password")
+    public ResponseEntity<?> resetPassword(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        return userRepository.findById(id).map(user -> {
+            user.setPassword(body.get("password")); // Aquí deberías usar BCrypt
+            userRepository.save(user);
+            return ResponseEntity.ok("Contraseña reseteada");
+        }).orElse(ResponseEntity.notFound().build());
     }
 }
