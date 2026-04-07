@@ -45,22 +45,22 @@ public class EmailService {
             mensaje.setFrom("radioisotopo.portal@gmail.com");
             mensaje.setTo(emailDestino);
             mensaje.setSubject("Bienvenido al Portal Clinico de Radioisotopos");
-            mensaje.setText("Estimado/a Dr./Dra. " + nombreMedico + ",\n\n" +
-                    "Le damos la bienvenida a la plataforma de monitorizacion nuclear. " +
-                    "Se ha creado su perfil de facultativo correctamente.\n\n" +
-                    "Sus credenciales de acceso son:\n" +
-                    "Usuario: " + emailDestino + "\n" +
-                    "Contrasena temporal: " + passwordTemporal + "\n\n" +
-                    "Puede acceder al portal desde la direccion de red del hospital.\n" +
-                    "Por motivos de seguridad, cambie su contrasena tras el primer inicio de sesion.\n\n" +
-                    "Atentamente,\n" +
-                    "Administracion del Centro");
+            String contenido = "Estimado/a Dr./Dra. " + nombreMedico + ",\n\n" +
+                    "Nos complace informarle de que su cuenta de acceso a la plataforma de monitorizacion nuclear ha sido creada correctamente. A continuacion, le facilitamos sus credenciales iniciales:\n\n" +
+                    "• Usuario: " + emailDestino + "\n" +
+                    "• Clave temporal: " + passwordTemporal + "\n\n" +
+                    "Por motivos de seguridad y para garantizar la proteccion de los datos de nuestro hospital, le recomendamos cambiar su contrasena en su primer acceso.\n\n" +
+                    "Si necesita asistencia adicional o tiene cualquier consulta, estaremos encantados de ayudarle.\n\n" +
+                    "Gracias por formar parte de Radioisotopo Portal\n" +
+                    "Acceso: https://radioisotopo.carriedo.cat\n\n" +
+                    "Un cordial saludo.";
 
             System.out.println("========== ENVIANDO EMAIL ==========");
             System.out.println("Para: " + emailDestino);
             System.out.println("Desde: radioisotopo.portal@gmail.com");
             System.out.println("====================================");
-            
+
+            mensaje.setText(contenido);
             mailSender.send(mensaje);
             System.out.println("EMAIL ENVIADO EXITOSAMENTE a: " + emailDestino);
         } catch (MailException e) {
