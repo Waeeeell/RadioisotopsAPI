@@ -1,5 +1,6 @@
 package radioisotops.api.com.example.demo.model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -34,8 +35,9 @@ public class User {
     // Al ser el lado inverso de la relación y para evitar
     // LazyInitializationException,
     // usamos EAGER para que siempre cargue los datos del Doctor junto al Usuario.
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
-    private Doctor doctor; // Si el usuario es médico, aquí estarán sus datos extra
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
+    @JsonManagedReference // Esto permite que el User sí muestre al Doctor
+    private Doctor doctor;
 
     // --- Constructor vacío (Obligatorio para Spring Boot) ---
     public User() {

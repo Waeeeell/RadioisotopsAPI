@@ -1,5 +1,6 @@
 package radioisotops.api.com.example.demo.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 
 @Entity
@@ -18,8 +19,9 @@ public class Doctor {
 
     // --- RELACIÓN CON USER (FOREIGN KEY) ---
     @OneToOne
-    @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
-    private User user; // Apunta a tu clase User
+    @JoinColumn(name = "user_id")
+    @JsonBackReference
+    private User user;
 
     // --- Constructores ---
     public Doctor() {
