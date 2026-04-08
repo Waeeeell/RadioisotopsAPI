@@ -35,7 +35,7 @@ public class AuthController {
     private EmailService emailService;
 
     /**
-     * LOGIN DE USUARIOS - Ahora devuelve el perfil completo con preferencias
+     * LOGIN DE USUARIOS
      */
     @PostMapping("/login")
     public ResponseEntity<?> iniciarSesion(@RequestBody LoginRequest loginRequest) {
@@ -56,7 +56,7 @@ public class AuthController {
                 String token = jwtUtil.generateToken(usuario.getEmail());
                 boolean temporal = usuario.getPassword().startsWith("Temp");
 
-                // USAMOS EL CONSTRUCTOR DE 16 PARÁMETROS
+                // CORRECCIÓN: Usamos .getNotif... en lugar de .isNotif...
                 LoginResponseDTO respuesta = new LoginResponseDTO(
                         usuario.getId(),
                         usuario.getEmail(),
@@ -68,12 +68,12 @@ public class AuthController {
                         temporal,
                         usuario.getIdioma(),
                         usuario.getZonaHoraria(),
-                        usuario.isNotifBateria(),
-                        usuario.isNotifDesconexion(),
-                        usuario.isNotifResumen(),
-                        usuario.isNotifRadiacion(),
-                        usuario.isNotifVitales(),
-                        usuario.isNotifSincro()
+                        usuario.getNotifBateria(),
+                        usuario.getNotifDesconexion(),
+                        usuario.getNotifResumen(),
+                        usuario.getNotifRadiacion(),
+                        usuario.getNotifVitales(),
+                        usuario.getNotifSincro()
                 );
 
                 return ResponseEntity.ok(respuesta);
@@ -83,7 +83,7 @@ public class AuthController {
     }
 
     /**
-     * OBTENER DATOS DEL USUARIO LOGUEADO
+     * OBTENER DATOS DEL USUARIO LOGUEADO (/me)
      */
     @GetMapping("/me")
     public ResponseEntity<?> obtenerUsuarioActual(HttpServletRequest request) {
@@ -99,6 +99,7 @@ public class AuthController {
                     String colegiado = (user.getDoctor() != null) ? user.getDoctor().getColegiadoNum() : null;
                     boolean temporal = user.getPassword().startsWith("Temp");
 
+                    // CORRECCIÓN: Usamos .getNotif... para los tipos Boolean
                     return ResponseEntity.ok(new LoginResponseDTO(
                             user.getId(),
                             user.getEmail(),
@@ -110,16 +111,18 @@ public class AuthController {
                             temporal,
                             user.getIdioma(),
                             user.getZonaHoraria(),
-                            user.isNotifBateria(),
-                            user.isNotifDesconexion(),
-                            user.isNotifResumen(),
-                            user.isNotifRadiacion(),
-                            user.isNotifVitales(),
-                            user.isNotifSincro()
+                            user.getNotifBateria(),
+                            user.getNotifDesconexion(),
+                            user.getNotifResumen(),
+                            user.getNotifRadiacion(),
+                            user.getNotifVitales(),
+                            user.getNotifSincro()
                     ));
                 })
                 .orElse(ResponseEntity.status(404).build());
     }
+
+    // ... (El resto de métodos se mantienen igual ya que usan SETTERS o no llaman a los getters de notificaciones)
 
     @GetMapping("/doctores")
     public ResponseEntity<List<User>> listarDoctores() {
@@ -167,9 +170,6 @@ public class AuthController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    /**
-     * ACTUALIZAR PREFERENCIAS - Persistencia real en DB
-     */
     @PutMapping("/preferencias")
     public ResponseEntity<?> actualizarPreferencias(HttpServletRequest request, @RequestBody PreferenciasDTO dto) {
         String email = (String) request.getAttribute("userEmail");
