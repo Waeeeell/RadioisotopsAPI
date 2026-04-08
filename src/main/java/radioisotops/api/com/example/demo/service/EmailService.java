@@ -9,7 +9,7 @@ import java.util.*;
 @Service
 public class EmailService {
 
-    private final String SENDGRID_API_KEY = "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";
+    private final String SENDGRID_API_KEY = System.getenv("SENDGRID_API_KEY");
     private final String SENDGRID_URL = "https://api.sendgrid.com/v3/mail/send";
 
     @Async
