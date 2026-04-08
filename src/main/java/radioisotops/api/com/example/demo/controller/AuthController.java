@@ -17,11 +17,11 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
-// Configuración robusta de CORS para evitar bloqueos del Worker
+// Añadimos PUT y PATCH a la lista de permitidos por si acaso, aunque usemos POST
 @CrossOrigin(
         origins = "*",
         allowedHeaders = "*",
-        methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.OPTIONS}
+        methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.OPTIONS}
 )
 public class AuthController {
 
@@ -110,7 +110,6 @@ public class AuthController {
 
     /**
      * CAMBIO DE ESTADO (SUSPENDER/ACTIVAR)
-     * Cambiado a @PostMapping para evitar problemas de CORS con PATCH
      */
     @PostMapping("/doctor/{id}/status")
     public ResponseEntity<?> cambiarEstado(@PathVariable Long id, @RequestBody Map<String, String> body) {
@@ -123,25 +122,21 @@ public class AuthController {
 
     /**
      * RESET DE CONTRASEÑA
-     * Cambiado a @PostMapping. Flujo síncrono para garantizar envío de cabeceras.
+     * IMPORTANTE: Asegúrate de que el frontend use method: 'POST'
      */
     @PostMapping("/doctor/{id}/password")
     public ResponseEntity<?> resetPassword(@PathVariable Long id, @RequestBody Map<String, String> body) {
         return userRepository.findById(id).map(user -> {
             String nuevaPass = body.get("password");
 
-            // 1. Persistencia en base de datos
             user.setPassword(nuevaPass);
             userRepository.save(user);
 
-            // 2. Intento de envío de email
             try {
-                // Síncrono para que el Worker de Cloudflare no cierre la conexión
                 emailService.enviarPasswordTemporal(user.getEmail(), user.getNombreCompleto(), nuevaPass);
-                return ResponseEntity.ok("Contrasena actualizada y correo enviado.");
+                return ResponseEntity.ok(Map.of("message", "Contrasena actualizada y correo enviado."));
             } catch (Exception e) {
-                // Respondemos con éxito parcial para no confundir al administrador
-                return ResponseEntity.ok("Contrasena actualizada en sistema, pero el servidor de correo fallo.");
+                return ResponseEntity.ok(Map.of("message", "Contrasena actualizada, pero el correo fallo."));
             }
         }).orElse(ResponseEntity.notFound().build());
     }
