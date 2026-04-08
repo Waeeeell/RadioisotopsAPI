@@ -17,7 +17,6 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
-// Añadimos PUT y PATCH a la lista de permitidos por si acaso, aunque usemos POST
 @CrossOrigin(
         origins = "*",
         allowedHeaders = "*",
@@ -55,6 +54,10 @@ public class AuthController {
 
                 String token = jwtUtil.generateToken(usuario.getEmail());
 
+                // LÓGICA: Si la contraseña actual empieza por "Temp", avisamos al frontend
+                boolean temporal = usuario.getPassword().startsWith("Temp");
+
+                // USAMOS EL CONSTRUCTOR DE 8 PARÁMETROS
                 LoginResponseDTO respuesta = new LoginResponseDTO(
                         usuario.getId(),
                         usuario.getEmail(),
@@ -62,7 +65,8 @@ public class AuthController {
                         usuario.getRol(),
                         especialidad,
                         colegiado,
-                        token
+                        token,
+                        temporal
                 );
 
                 return ResponseEntity.ok(respuesta);
@@ -87,6 +91,8 @@ public class AuthController {
                     String especialidad = (user.getDoctor() != null) ? user.getDoctor().getEspecialidad() : null;
                     String colegiado = (user.getDoctor() != null) ? user.getDoctor().getColegiadoNum() : null;
 
+                    boolean temporal = user.getPassword().startsWith("Temp");
+
                     return ResponseEntity.ok(new LoginResponseDTO(
                             user.getId(),
                             user.getEmail(),
@@ -94,41 +100,31 @@ public class AuthController {
                             user.getRol(),
                             especialidad,
                             colegiado,
-                            null
+                            null, // El token suele ser nulo en el /me si no se refresca
+                            temporal
                     ));
                 })
                 .orElse(ResponseEntity.status(404).build());
     }
 
-    /**
-     * LISTADO DE MÉDICOS PARA EL PANEL DE AUDITORÍA
-     */
     @GetMapping("/doctores")
     public ResponseEntity<List<User>> listarDoctores() {
         return ResponseEntity.ok(userRepository.findByRol("MEDICO"));
     }
 
-    /**
-     * CAMBIO DE ESTADO (SUSPENDER/ACTIVAR)
-     */
     @PostMapping("/doctor/{id}/status")
     public ResponseEntity<?> cambiarEstado(@PathVariable Long id, @RequestBody Map<String, String> body) {
         return userRepository.findById(id).map(user -> {
             user.setEstado(body.get("estado"));
             userRepository.save(user);
-            return ResponseEntity.ok("Estado actualizado correctamente");
+            return ResponseEntity.ok(Map.of("message", "Estado actualizado correctamente"));
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    /**
-     * RESET DE CONTRASEÑA
-     * IMPORTANTE: Asegúrate de que el frontend use method: 'POST'
-     */
     @PostMapping("/doctor/{id}/password")
     public ResponseEntity<?> resetPassword(@PathVariable Long id, @RequestBody Map<String, String> body) {
         return userRepository.findById(id).map(user -> {
             String nuevaPass = body.get("password");
-
             user.setPassword(nuevaPass);
             userRepository.save(user);
 
@@ -149,11 +145,11 @@ public class AuthController {
 
         return userRepository.findByEmail(email).map(user -> {
             if (!user.getPassword().equals(oldPass)) {
-                return ResponseEntity.status(401).body("La contraseña actual es incorrecta");
+                return ResponseEntity.status(401).body(Map.of("message", "La contraseña actual es incorrecta"));
             }
             user.setPassword(newPass);
             userRepository.save(user);
-            return ResponseEntity.ok("Contraseña actualizada con éxito");
+            return ResponseEntity.ok(Map.of("message", "Contraseña actualizada con éxito"));
         }).orElse(ResponseEntity.notFound().build());
     }
 }
