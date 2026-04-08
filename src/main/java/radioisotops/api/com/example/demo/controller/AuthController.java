@@ -140,4 +140,20 @@ public class AuthController {
             }
         }).orElse(ResponseEntity.notFound().build());
     }
+
+    @PostMapping("/update-password")
+    public ResponseEntity<?> updatePassword(HttpServletRequest request, @RequestBody Map<String, String> body) {
+        String email = (String) request.getAttribute("userEmail");
+        String oldPass = body.get("oldPassword");
+        String newPass = body.get("newPassword");
+
+        return userRepository.findByEmail(email).map(user -> {
+            if (!user.getPassword().equals(oldPass)) {
+                return ResponseEntity.status(401).body("La contraseña actual es incorrecta");
+            }
+            user.setPassword(newPass);
+            userRepository.save(user);
+            return ResponseEntity.ok("Contraseña actualizada con éxito");
+        }).orElse(ResponseEntity.notFound().build());
+    }
 }
