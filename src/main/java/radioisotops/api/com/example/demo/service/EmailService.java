@@ -15,6 +15,7 @@ public class EmailService {
 
     /**
      * Envío de nueva clave temporal tras un reset en el Panel de Auditoría.
+     * Al ser @Async, los errores se manejan internamente mediante logs.
      */
     @Async
     public void enviarPasswordTemporal(String emailDestino, String nombreMedico, String nuevaPassword) {
@@ -35,15 +36,14 @@ public class EmailService {
 
             mensaje.setText(contenido);
 
-            System.out.println("Iniciando envio de reset de password para: " + emailDestino);
+            System.out.println(">>> [ASYNC-MAIL] Iniciando reset de password para: " + emailDestino);
             mailSender.send(mensaje);
-            System.out.println("Email de reset enviado con exito.");
+            System.out.println(">>> [ASYNC-MAIL] Email de reset enviado con exito.");
 
         } catch (MailException e) {
-            System.err.println("Fallo critico al enviar email de reset:");
-            e.printStackTrace();
-            // Lanzamos excepcion para que el controlador pueda informar del error
-            throw new RuntimeException("No se pudo conectar con el servidor de correo");
+            System.err.println(">>> [ASYNC-MAIL] ERROR en reset de password:");
+            System.err.println(">>> Detalle: " + e.getMessage());
+            // No lanzamos RuntimeException para evitar excepciones huerfanas en hilos async
         }
     }
 
@@ -53,31 +53,33 @@ public class EmailService {
     @Async
     public void enviarBienvenidaMedico(String emailDestino, String nombreMedico, String passwordTemporal) {
         try {
-            System.out.println(">>> [MAIL] Preparando mensaje para: " + emailDestino);
+            System.out.println(">>> [ASYNC-MAIL] Preparando bienvenida para: " + emailDestino);
 
             SimpleMailMessage mensaje = new SimpleMailMessage();
             mensaje.setFrom("radioisotopo.portal@gmail.com");
             mensaje.setTo(emailDestino);
-            mensaje.setSubject("Bienvenido al Portal Clinico");
-            mensaje.setText("Hola Dr. " + nombreMedico + ". Su clave es: " + passwordTemporal);
+            mensaje.setSubject("Bienvenido al Portal Clinico - radioisotopo.portal");
 
-            // LOG DE SEGURIDAD (Para verificar que las variables de entorno llegan bien)
-            // No imprimas la clave real por seguridad, solo confirma que no es nula
-            System.out.println(">>> [MAIL] Intentando conectar con smtp.gmail.com:587");
+            String contenido = "Estimado/a Dr./Dra. " + nombreMedico + ",\n\n" +
+                    "Su cuenta ha sido creada. Credenciales:\n" +
+                    "• Usuario: " + emailDestino + "\n" +
+                    "• Clave: " + passwordTemporal + "\n\n" +
+                    "Acceda aqui: https://radioisotopo.carriedo.cat";
 
+            mensaje.setText(contenido);
+
+            System.out.println(">>> [ASYNC-MAIL] Conectando con servidor SMTP...");
             mailSender.send(mensaje);
-
-            System.out.println(">>> [MAIL] ¡EXITO! El servidor de Google ha aceptado el correo.");
+            System.out.println(">>> [ASYNC-MAIL] EXITOSO: El correo de bienvenida ha sido enviado.");
 
         } catch (Exception e) {
-            System.err.println(">>> [MAIL] ERROR CRITICO detectado:");
-            System.err.println(">>> Clase del error: " + e.getClass().getName());
+            System.err.println(">>> [ASYNC-MAIL] ERROR CRITICO en hilo de bienvenida:");
             System.err.println(">>> Mensaje: " + e.getMessage());
             if (e.getCause() != null) {
-                System.err.println(">>> Causa original: " + e.getCause().getMessage());
+                System.err.println(">>> Causa: " + e.getCause().getMessage());
             }
-            // IMPORTANTE: Lanzamos la excepción para que el controlador la vea
-            throw new RuntimeException("Error en envio SMTP: " + e.getMessage());
+            // Logueamos el stack trace completo en Render para depuracion profunda
+            e.printStackTrace();
         }
     }
 }
