@@ -9,12 +9,24 @@ public class LoginResponseDTO {
     private String especialidad;
     private String colegiado;
     private String token;
-    private boolean requiereCambioPassword; // El nuevo flag
+    private boolean requiereCambioPassword;
 
-    // Constructor actualizado con el nuevo parámetro
+    // --- NUEVOS CAMPOS DE CONFIGURACIÓN ---
+    private String idioma;
+    private String zonaHoraria;
+    private boolean notifBateria;
+    private boolean notifDesconexion;
+    private boolean notifResumen;
+    private boolean notifRadiacion;
+    private boolean notifVitales;
+    private boolean notifSincro;
+
+    // Constructor completo para usar en el AuthController
     public LoginResponseDTO(Long id, String email, String nombreCompleto, String rol,
                             String especialidad, String colegiado, String token,
-                            boolean requiereCambioPassword) {
+                            boolean requiereCambioPassword, String idioma, String zonaHoraria,
+                            boolean notifBateria, boolean notifDesconexion, boolean notifResumen,
+                            boolean notifRadiacion, boolean notifVitales, boolean notifSincro) {
         this.id = id;
         this.email = email;
         this.nombreCompleto = nombreCompleto;
@@ -23,6 +35,14 @@ public class LoginResponseDTO {
         this.colegiado = colegiado;
         this.token = token;
         this.requiereCambioPassword = requiereCambioPassword;
+        this.idioma = idioma;
+        this.zonaHoraria = zonaHoraria;
+        this.notifBateria = notifBateria;
+        this.notifDesconexion = notifDesconexion;
+        this.notifResumen = notifResumen;
+        this.notifRadiacion = notifRadiacion;
+        this.notifVitales = notifVitales;
+        this.notifSincro = notifSincro;
     }
 
     public LoginResponseDTO() {}
@@ -50,11 +70,30 @@ public class LoginResponseDTO {
     public String getToken() { return token; }
     public void setToken(String token) { this.token = token; }
 
-    public boolean isRequiereCambioPassword() {
-        return requiereCambioPassword;
-    }
+    public boolean isRequiereCambioPassword() { return requiereCambioPassword; }
+    public void setRequiereCambioPassword(boolean requiereCambioPassword) { this.requiereCambioPassword = requiereCambioPassword; }
 
-    public void setRequiereCambioPassword(boolean requiereCambioPassword) {
-        this.requiereCambioPassword = requiereCambioPassword;
-    }
+    public String getIdioma() { return idioma; }
+    public void setIdioma(String idioma) { this.idioma = idioma; }
+
+    public String getZonaHoraria() { return zonaHoraria; }
+    public void setZonaHoraria(String zonaHoraria) { this.zonaHoraria = zonaHoraria; }
+
+    public boolean isNotifBateria() { return notifBateria; }
+    public void setNotifBateria(boolean notifBateria) { this.notifBateria = notifBateria; }
+
+    public boolean isNotifDesconexion() { return notifDesconexion; }
+    public void setNotifDesconexion(boolean notifDesconexion) { this.notifDesconexion = notifDesconexion; }
+
+    public boolean isNotifResumen() { return notifResumen; }
+    public void setNotifResumen(boolean notifResumen) { this.notifResumen = notifResumen; }
+
+    public boolean isNotifRadiacion() { return notifRadiacion; }
+    public void setNotifRadiacion(boolean notifRadiacion) { this.notifRadiacion = notifRadiacion; }
+
+    public boolean isNotifVitales() { return notifVitales; }
+    public void setNotifVitales(boolean notifVitales) { this.notifVitales = notifVitales; }
+
+    public boolean isNotifSincro() { return notifSincro; }
+    public void setNotifSincro(boolean notifSincro) { this.notifSincro = notifSincro; }
 }

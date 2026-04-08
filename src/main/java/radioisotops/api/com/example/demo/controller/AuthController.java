@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import radioisotops.api.com.example.demo.dto.LoginRequest;
 import radioisotops.api.com.example.demo.dto.LoginResponseDTO;
+import radioisotops.api.com.example.demo.dto.PreferenciasDTO;
 import radioisotops.api.com.example.demo.model.User;
 import radioisotops.api.com.example.demo.repository.UserRepository;
 import radioisotops.api.com.example.demo.security.JwtUtil;
@@ -34,7 +35,7 @@ public class AuthController {
     private EmailService emailService;
 
     /**
-     * LOGIN DE USUARIOS
+     * LOGIN DE USUARIOS - Ahora devuelve el perfil completo con preferencias
      */
     @PostMapping("/login")
     public ResponseEntity<?> iniciarSesion(@RequestBody LoginRequest loginRequest) {
@@ -53,11 +54,9 @@ public class AuthController {
                 }
 
                 String token = jwtUtil.generateToken(usuario.getEmail());
-
-                // LÓGICA: Si la contraseña actual empieza por "Temp", avisamos al frontend
                 boolean temporal = usuario.getPassword().startsWith("Temp");
 
-                // USAMOS EL CONSTRUCTOR DE 8 PARÁMETROS
+                // USAMOS EL CONSTRUCTOR DE 16 PARÁMETROS
                 LoginResponseDTO respuesta = new LoginResponseDTO(
                         usuario.getId(),
                         usuario.getEmail(),
@@ -66,7 +65,15 @@ public class AuthController {
                         especialidad,
                         colegiado,
                         token,
-                        temporal
+                        temporal,
+                        usuario.getIdioma(),
+                        usuario.getZonaHoraria(),
+                        usuario.isNotifBateria(),
+                        usuario.isNotifDesconexion(),
+                        usuario.isNotifResumen(),
+                        usuario.isNotifRadiacion(),
+                        usuario.isNotifVitales(),
+                        usuario.isNotifSincro()
                 );
 
                 return ResponseEntity.ok(respuesta);
@@ -90,7 +97,6 @@ public class AuthController {
                 .map(user -> {
                     String especialidad = (user.getDoctor() != null) ? user.getDoctor().getEspecialidad() : null;
                     String colegiado = (user.getDoctor() != null) ? user.getDoctor().getColegiadoNum() : null;
-
                     boolean temporal = user.getPassword().startsWith("Temp");
 
                     return ResponseEntity.ok(new LoginResponseDTO(
@@ -100,8 +106,16 @@ public class AuthController {
                             user.getRol(),
                             especialidad,
                             colegiado,
-                            null, // El token suele ser nulo en el /me si no se refresca
-                            temporal
+                            null,
+                            temporal,
+                            user.getIdioma(),
+                            user.getZonaHoraria(),
+                            user.isNotifBateria(),
+                            user.isNotifDesconexion(),
+                            user.isNotifResumen(),
+                            user.isNotifRadiacion(),
+                            user.isNotifVitales(),
+                            user.isNotifSincro()
                     ));
                 })
                 .orElse(ResponseEntity.status(404).build());
@@ -150,6 +164,28 @@ public class AuthController {
             user.setPassword(newPass);
             userRepository.save(user);
             return ResponseEntity.ok(Map.of("message", "Contraseña actualizada con éxito"));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * ACTUALIZAR PREFERENCIAS - Persistencia real en DB
+     */
+    @PutMapping("/preferencias")
+    public ResponseEntity<?> actualizarPreferencias(HttpServletRequest request, @RequestBody PreferenciasDTO dto) {
+        String email = (String) request.getAttribute("userEmail");
+
+        return userRepository.findByEmail(email).map(user -> {
+            user.setIdioma(dto.idioma());
+            user.setZonaHoraria(dto.zonaHoraria());
+            user.setNotifBateria(dto.bateriaBaja());
+            user.setNotifDesconexion(dto.desconexionBiometrica());
+            user.setNotifResumen(dto.resumenSemanal());
+            user.setNotifRadiacion(dto.radiacionSegura());
+            user.setNotifVitales(dto.anomaliaVitales());
+            user.setNotifSincro(dto.falloSincronizacion());
+
+            userRepository.save(user);
+            return ResponseEntity.ok(Map.of("message", "Preferencias actualizadas"));
         }).orElse(ResponseEntity.notFound().build());
     }
 }

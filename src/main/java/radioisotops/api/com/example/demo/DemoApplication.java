@@ -58,31 +58,6 @@ public class DemoApplication {
                 
                 System.out.println("✅ Administrador creado con éxito.");
             }
-
-            userRepository.findByEmail("marcosgongora1000@gmail.com").ifPresent(user -> {
-                userRepository.delete(user);
-                System.out.println("🗑️ Usuario de prueba 'Alex' eliminado para permitir nuevo test.");
-            });
-
-            userRepository.findByEmail("marcosgongora2000@gmail.com").ifPresent(user -> {
-                userRepository.delete(user);
-                System.out.println("🗑️ Usuario de prueba 'Alex' eliminado para permitir nuevo test.");
-            });
-
-            userRepository.findByEmail("2024_marcos.gongora@iticbcn.cat").ifPresent(user -> {
-                userRepository.delete(user);
-                System.out.println("🗑️ Usuario de prueba 'Alex' eliminado para permitir nuevo test.");
-            });
-
-            userRepository.findByEmail("m.gongora.carriedo@gmail.com").ifPresent(user -> {
-                userRepository.delete(user);
-                System.out.println("🗑️ Usuario de prueba 'Alex' eliminado para permitir nuevo test.");
-            });
-            userRepository.findByEmail("marcos.gongora.carriedo@gmail.com").ifPresent(user -> {
-                userRepository.delete(user);
-                System.out.println("🗑️ Usuario de prueba 'Alex' eliminado para permitir nuevo test.");
-            });
-
             
             System.out.println("🚀 Verificación de usuarios iniciales completada.");
         };
