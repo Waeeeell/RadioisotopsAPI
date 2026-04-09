@@ -24,6 +24,9 @@ public class User {
     @Column(nullable = false)
     private String rol;
 
+    @Column(name = "profile_pic_url")
+    private String profilePicUrl;
+
     @Column(name = "fecha_registro")
     private LocalDateTime fechaRegistro;
 
@@ -38,7 +41,6 @@ public class User {
     @Column(name = "zona_horaria", columnDefinition = "VARCHAR(100) DEFAULT 'Europa/Madrid (CET)'")
     private String zonaHoraria = "Europa/Madrid (CET)";
 
-    // Cambiamos de 'boolean' a 'Boolean' para permitir nulos de registros antiguos
     @Column(name = "notif_bateria")
     private Boolean notifBateria = true;
 
@@ -67,72 +69,157 @@ public class User {
     public User() {
     }
 
-    public User(Long id, String nombreCompleto, String email, String password, String rol,
-                LocalDateTime fechaRegistro, String estado, String hospitalRef) {
+    // --- GETTERS Y SETTERS ---
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
         this.id = id;
+    }
+
+    public String getNombreCompleto() {
+        return nombreCompleto;
+    }
+
+    public void setNombreCompleto(String nombreCompleto) {
         this.nombreCompleto = nombreCompleto;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getRol() {
+        return rol;
+    }
+
+    public void setRol(String rol) {
         this.rol = rol;
+    }
+
+    public String getProfilePicUrl() {
+        return profilePicUrl;
+    }
+
+    public void setProfilePicUrl(String profilePicUrl) {
+        this.profilePicUrl = profilePicUrl;
+    }
+
+    public LocalDateTime getFechaRegistro() {
+        return fechaRegistro;
+    }
+
+    public void setFechaRegistro(LocalDateTime fechaRegistro) {
         this.fechaRegistro = fechaRegistro;
+    }
+
+    public String getEstado() {
+        return estado;
+    }
+
+    public void setEstado(String estado) {
         this.estado = estado;
+    }
+
+    public String getHospitalRef() {
+        return hospitalRef;
+    }
+
+    public void setHospitalRef(String hospitalRef) {
         this.hospitalRef = hospitalRef;
     }
 
-    // --- GETTERS Y SETTERS ---
+    public String getIdioma() {
+        return idioma;
+    }
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public void setIdioma(String idioma) {
+        this.idioma = idioma;
+    }
 
-    public String getNombreCompleto() { return nombreCompleto; }
-    public void setNombreCompleto(String nombreCompleto) { this.nombreCompleto = nombreCompleto; }
+    public String getZonaHoraria() {
+        return zonaHoraria;
+    }
 
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
+    public void setZonaHoraria(String zonaHoraria) {
+        this.zonaHoraria = zonaHoraria;
+    }
 
-    public String getPassword() { return password; }
-    public void setPassword(String password) { this.password = password; }
+    public Boolean getNotifBateria() {
+        return notifBateria != null ? notifBateria : true;
+    }
 
-    public String getRol() { return rol; }
-    public void setRol(String rol) { this.rol = rol; }
+    public void setNotifBateria(Boolean notifBateria) {
+        this.notifBateria = notifBateria;
+    }
 
-    public LocalDateTime getFechaRegistro() { return fechaRegistro; }
-    public void setFechaRegistro(LocalDateTime fechaRegistro) { this.fechaRegistro = fechaRegistro; }
+    public Boolean getNotifDesconexion() {
+        return notifDesconexion != null ? notifDesconexion : true;
+    }
 
-    public String getEstado() { return estado; }
-    public void setEstado(String estado) { this.estado = estado; }
+    public void setNotifDesconexion(Boolean notifDesconexion) {
+        this.notifDesconexion = notifDesconexion;
+    }
 
-    public String getHospitalRef() { return hospitalRef; }
-    public void setHospitalRef(String hospitalRef) { this.hospitalRef = hospitalRef; }
+    public Boolean getNotifResumen() {
+        return notifResumen != null ? notifResumen : false;
+    }
 
-    public Doctor getDoctor() { return doctor; }
-    public void setDoctor(Doctor doctor) { this.doctor = doctor; }
+    public void setNotifResumen(Boolean notifResumen) {
+        this.notifResumen = notifResumen;
+    }
 
-    public Patient getPatient() { return patient; }
-    public void setPatient(Patient patient) { this.patient = patient; }
+    public Boolean getNotifRadiacion() {
+        return notifRadiacion != null ? notifRadiacion : true;
+    }
 
-    public String getIdioma() { return idioma; }
-    public void setIdioma(String idioma) { this.idioma = idioma; }
+    public void setNotifRadiacion(Boolean notifRadiacion) {
+        this.notifRadiacion = notifRadiacion;
+    }
 
-    public String getZonaHoraria() { return zonaHoraria; }
-    public void setZonaHoraria(String zonaHoraria) { this.zonaHoraria = zonaHoraria; }
+    public Boolean getNotifVitales() {
+        return notifVitales != null ? notifVitales : true;
+    }
 
-    // Actualizamos los Getters/Setters para usar Boolean
-    public Boolean getNotifBateria() { return notifBateria != null ? notifBateria : true; }
-    public void setNotifBateria(Boolean notifBateria) { this.notifBateria = notifBateria; }
+    public void setNotifVitales(Boolean notifVitales) {
+        this.notifVitales = notifVitales;
+    }
 
-    public Boolean getNotifDesconexion() { return notifDesconexion != null ? notifDesconexion : true; }
-    public void setNotifDesconexion(Boolean notifDesconexion) { this.notifDesconexion = notifDesconexion; }
+    public Boolean getNotifSincro() {
+        return notifSincro != null ? notifSincro : false;
+    }
 
-    public Boolean getNotifResumen() { return notifResumen != null ? notifResumen : false; }
-    public void setNotifResumen(Boolean notifResumen) { this.notifResumen = notifResumen; }
+    public void setNotifSincro(Boolean notifSincro) {
+        this.notifSincro = notifSincro;
+    }
 
-    public Boolean getNotifRadiacion() { return notifRadiacion != null ? notifRadiacion : true; }
-    public void setNotifRadiacion(Boolean notifRadiacion) { this.notifRadiacion = notifRadiacion; }
+    public Doctor getDoctor() {
+        return doctor;
+    }
 
-    public Boolean getNotifVitales() { return notifVitales != null ? notifVitales : true; }
-    public void setNotifVitales(Boolean notifVitales) { this.notifVitales = notifVitales; }
+    public void setDoctor(Doctor doctor) {
+        this.doctor = doctor;
+    }
 
-    public Boolean getNotifSincro() { return notifSincro != null ? notifSincro : false; }
-    public void setNotifSincro(Boolean notifSincro) { this.notifSincro = notifSincro; }
+    public Patient getPatient() {
+        return patient;
+    }
+
+    public void setPatient(Patient patient) {
+        this.patient = patient;
+    }
 }
