@@ -10,8 +10,6 @@ public class LoginResponseDTO {
     private String colegiado;
     private String token;
     private boolean requiereCambioPassword;
-
-    // --- NUEVOS CAMPOS DE CONFIGURACIÓN ---
     private String idioma;
     private String zonaHoraria;
     private boolean notifBateria;
@@ -20,13 +18,14 @@ public class LoginResponseDTO {
     private boolean notifRadiacion;
     private boolean notifVitales;
     private boolean notifSincro;
+    private String profilePicUrl; // ✅ NUEVO
 
-    // Constructor completo para usar en el AuthController
     public LoginResponseDTO(Long id, String email, String nombreCompleto, String rol,
                             String especialidad, String colegiado, String token,
                             boolean requiereCambioPassword, String idioma, String zonaHoraria,
                             boolean notifBateria, boolean notifDesconexion, boolean notifResumen,
-                            boolean notifRadiacion, boolean notifVitales, boolean notifSincro) {
+                            boolean notifRadiacion, boolean notifVitales, boolean notifSincro,
+                            String profilePicUrl) { // ✅ NUEVO
         this.id = id;
         this.email = email;
         this.nombreCompleto = nombreCompleto;
@@ -43,6 +42,7 @@ public class LoginResponseDTO {
         this.notifRadiacion = notifRadiacion;
         this.notifVitales = notifVitales;
         this.notifSincro = notifSincro;
+        this.profilePicUrl = profilePicUrl; // ✅ NUEVO
     }
 
     public LoginResponseDTO() {}
@@ -96,4 +96,7 @@ public class LoginResponseDTO {
 
     public boolean isNotifSincro() { return notifSincro; }
     public void setNotifSincro(boolean notifSincro) { this.notifSincro = notifSincro; }
+
+    public String getProfilePicUrl() { return profilePicUrl; }
+    public void setProfilePicUrl(String profilePicUrl) { this.profilePicUrl = profilePicUrl; }
 }

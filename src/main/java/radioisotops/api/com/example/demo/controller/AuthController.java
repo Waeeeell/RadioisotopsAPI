@@ -34,9 +34,6 @@ public class AuthController {
     @Autowired
     private EmailService emailService;
 
-    /**
-     * LOGIN DE USUARIOS
-     */
     @PostMapping("/login")
     public ResponseEntity<?> iniciarSesion(@RequestBody LoginRequest loginRequest) {
         Optional<User> usuarioOpt = userRepository.findByEmail(loginRequest.getEmail());
@@ -56,7 +53,6 @@ public class AuthController {
                 String token = jwtUtil.generateToken(usuario.getEmail());
                 boolean temporal = usuario.getPassword().startsWith("Temp");
 
-                // CORRECCIÓN: Usamos .getNotif... en lugar de .isNotif...
                 LoginResponseDTO respuesta = new LoginResponseDTO(
                         usuario.getId(),
                         usuario.getEmail(),
@@ -73,7 +69,8 @@ public class AuthController {
                         usuario.getNotifResumen(),
                         usuario.getNotifRadiacion(),
                         usuario.getNotifVitales(),
-                        usuario.getNotifSincro()
+                        usuario.getNotifSincro(),
+                        usuario.getProfilePicUrl() // ✅ NUEVO
                 );
 
                 return ResponseEntity.ok(respuesta);
@@ -82,9 +79,6 @@ public class AuthController {
         return ResponseEntity.status(401).body("Credenciales incorrectas");
     }
 
-    /**
-     * OBTENER DATOS DEL USUARIO LOGUEADO (/me)
-     */
     @GetMapping("/me")
     public ResponseEntity<?> obtenerUsuarioActual(HttpServletRequest request) {
         String email = (String) request.getAttribute("userEmail");
@@ -99,7 +93,6 @@ public class AuthController {
                     String colegiado = (user.getDoctor() != null) ? user.getDoctor().getColegiadoNum() : null;
                     boolean temporal = user.getPassword().startsWith("Temp");
 
-                    // CORRECCIÓN: Usamos .getNotif... para los tipos Boolean
                     return ResponseEntity.ok(new LoginResponseDTO(
                             user.getId(),
                             user.getEmail(),
@@ -116,13 +109,12 @@ public class AuthController {
                             user.getNotifResumen(),
                             user.getNotifRadiacion(),
                             user.getNotifVitales(),
-                            user.getNotifSincro()
+                            user.getNotifSincro(),
+                            user.getProfilePicUrl() // ✅ NUEVO
                     ));
                 })
                 .orElse(ResponseEntity.status(404).build());
     }
-
-    // ... (El resto de métodos se mantienen igual ya que usan SETTERS o no llaman a los getters de notificaciones)
 
     @GetMapping("/doctores")
     public ResponseEntity<List<User>> listarDoctores() {
