@@ -52,7 +52,8 @@ public class JwtFilter extends OncePerRequestFilter {
                 return;
             }
         } else {
-            if (requestURI.contains("/api/patients") || requestURI.contains("/api/users")) {
+            if (requestURI.contains("/api/patients") ||
+                    (requestURI.contains("/api/users") && !requestURI.contains("/api/users/view-avatar"))) {
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Falta el token de autorización");
                 return;
             }
