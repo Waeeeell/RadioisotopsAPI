@@ -110,13 +110,23 @@ public class WatchController {
     }
 
     private double calcularActividadActual(String isotopo, double dosiInicial, LocalDateTime fechaInicio) {
-        double tMedHoras = switch (true) {
-            case true when isotopo.contains("I-131") || isotopo.contains("Iodo") -> 192.48;
-            case true when isotopo.contains("Lu-177") || isotopo.contains("Lutecio") -> 159.36;
-            case true when isotopo.contains("Co-60") || isotopo.contains("Cobalto") -> 46164.0;
-            default -> -1;
-        };
+        double tMedHoras;
+
+        // Cambiamos el switch(true) por if/else para evitar errores de compilación con guards
+        if (isotopo == null) {
+            tMedHoras = -1;
+        } else if (isotopo.contains("I-131") || isotopo.contains("Iodo")) {
+            tMedHoras = 192.48;
+        } else if (isotopo.contains("Lu-177") || isotopo.contains("Lutecio")) {
+            tMedHoras = 159.36;
+        } else if (isotopo.contains("Co-60") || isotopo.contains("Cobalto")) {
+            tMedHoras = 46164.0;
+        } else {
+            tMedHoras = -1;
+        }
+
         if (tMedHoras == -1) return dosiInicial;
+
         long horasTranscurridas = ChronoUnit.HOURS.between(fechaInicio, LocalDateTime.now());
         return dosiInicial * Math.pow(0.5, (double) horasTranscurridas / tMedHoras);
     }
