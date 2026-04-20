@@ -32,7 +32,10 @@ public class JwtFilter extends OncePerRequestFilter {
         String authHeader = request.getHeader("Authorization");
         String requestURI = request.getRequestURI();
 
-        if (requestURI.contains("/api/auth/login") || requestURI.contains("/api/auth/register")) {
+        // 1. Añadimos el endpoint de cambio de contraseña a las rutas permitidas sin token
+        if (requestURI.contains("/api/auth/login") ||
+                requestURI.contains("/api/auth/register") ||
+                requestURI.contains("/update-password")) { // <--- EXCEPCIÓN AQUÍ
             filterChain.doFilter(request, response);
             return;
         }
@@ -52,8 +55,11 @@ public class JwtFilter extends OncePerRequestFilter {
                 return;
             }
         } else {
+            // 2. Modificamos la restricción para que NO bloquee si es un update-password
             if (requestURI.contains("/api/patients") ||
-                    (requestURI.contains("/api/users") && !requestURI.contains("/api/users/view-avatar"))) {
+                    (requestURI.contains("/api/users") &&
+                            !requestURI.contains("/api/users/view-avatar") &&
+                            !requestURI.contains("/update-password"))) { // <--- NO BLOQUEAR AQUÍ
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Falta el token de autorización");
                 return;
             }

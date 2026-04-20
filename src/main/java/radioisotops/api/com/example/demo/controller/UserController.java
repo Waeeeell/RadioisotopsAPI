@@ -18,7 +18,8 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/users")
-@CrossOrigin(origins = "*", allowedHeaders = "*")
+// Importante: Asegúrate de que el CrossOrigin permita el método PUT explícitamente
+@CrossOrigin(origins = "*", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.OPTIONS})
 public class UserController {
 
     @Autowired
@@ -30,20 +31,13 @@ public class UserController {
     @Autowired
     private Cloudinary cloudinary;
 
-    /**
-     * 1. SUBIDA DE AVATAR A CLOUDINARY
-     * Persiste la imagen en el CDN y actualiza la URL en la base de datos.
-     */
     @PostMapping("/{id}/upload-avatar")
     public ResponseEntity<?> subirAvatar(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
         try {
             Optional<User> userOpt = userRepository.findById(id);
-            if (userOpt.isEmpty()) {
-                return ResponseEntity.status(404).body(Map.of("error", "Usuario no encontrado"));
-            }
+            if (userOpt.isEmpty()) return ResponseEntity.status(404).body(Map.of("error", "Usuario no encontrado"));
             User user = userOpt.get();
 
-            // Subir a la nube usando un ID público basado en el usuario para evitar duplicados
             Map uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.asMap(
                     "public_id", "avatar_user_" + id,
                     "folder", "avatars",
@@ -52,44 +46,33 @@ public class UserController {
             ));
 
             String url = (String) uploadResult.get("secure_url");
-
-            // Guardar la URL permanente en la DB
             user.setProfilePicUrl(url);
             userRepository.save(user);
 
-            return ResponseEntity.ok(Map.of(
-                    "message", "Imagen actualizada en Cloudinary",
-                    "url", url
-            ));
-
+            return ResponseEntity.ok(Map.of("message", "Imagen actualizada", "url", url));
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(Map.of("error", "Error al subir al CDN: " + e.getMessage()));
+            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
         }
     }
 
-    /**
-     * 2. REGISTRO DE MÉDICOS
-     * Crea el usuario, marca el cambio de password obligatorio y envía email.
-     */
     @PostMapping("/register-doctor")
     public ResponseEntity<?> registrarDoctor(@RequestBody User nuevoUsuario, HttpServletRequest request) {
         try {
-            // Extraer email del administrador desde el token (inyectado por el filtro)
+            // Mantenemos el chequeo de admin solo para el registro de médicos
             String adminEmail = (String) request.getAttribute("userEmail");
             if (adminEmail == null) {
-                return ResponseEntity.status(401).body(Map.of("error", "No autorizado"));
+                return ResponseEntity.status(401).body(Map.of("error", "No autorizado para registrar médicos"));
             }
 
             if (userRepository.findByEmail(nuevoUsuario.getEmail()).isPresent()) {
                 return ResponseEntity.badRequest().body(Map.of("error", "Email ya registrado"));
             }
 
-            // Configuración inicial de seguridad
             String passwordTemporal = nuevoUsuario.getPassword();
             nuevoUsuario.setFechaRegistro(LocalDateTime.now());
             nuevoUsuario.setRol("MEDICO");
             nuevoUsuario.setEstado("ACTIVO");
-            nuevoUsuario.setRequiereCambioPassword(true); // Obliga a cambiar clave en el primer login
+            nuevoUsuario.setRequiereCambioPassword(true);
 
             if (nuevoUsuario.getDoctor() != null) {
                 nuevoUsuario.getDoctor().setUser(nuevoUsuario);
@@ -97,25 +80,19 @@ public class UserController {
 
             userRepository.save(nuevoUsuario);
 
-            // Envío de credenciales por email (Asíncrono)
             try {
-                emailService.enviarBienvenidaMedico(
-                        nuevoUsuario.getEmail(),
-                        nuevoUsuario.getNombreCompleto(),
-                        passwordTemporal
-                );
+                emailService.enviarBienvenidaMedico(nuevoUsuario.getEmail(), nuevoUsuario.getNombreCompleto(), passwordTemporal);
             } catch (Exception ignored) {}
 
-            return ResponseEntity.ok(Map.of("message", "Médico registrado correctamente"));
-
+            return ResponseEntity.ok(Map.of("message", "Médico registrado"));
         } catch (Exception e) {
             return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
         }
     }
 
     /**
-     * 3. ACTUALIZAR CONTRASEÑA (Paso final del flujo de activación)
-     * Cambia la clave temporal por una definitiva y libera el acceso.
+     * ACTUALIZAR CONTRASEÑA
+     * He eliminado cualquier chequeo de 'request.getAttribute' para que no pida token de admin aquí.
      */
     @PutMapping("/{id}/update-password")
     @Transactional
@@ -127,18 +104,14 @@ public class UserController {
                 return ResponseEntity.badRequest().body(Map.of("error", "Contraseña demasiado corta"));
             }
 
-            // Actualizamos clave y quitamos el flag de bloqueo
             user.setPassword(nuevaPassword);
             user.setRequiereCambioPassword(false);
             userRepository.save(user);
 
             return ResponseEntity.ok(Map.of("message", "Contraseña actualizada correctamente"));
-        }).orElse(ResponseEntity.notFound().build());
+        }).orElse(ResponseEntity.status(404).body(Map.of("error", "Usuario no encontrado")));
     }
 
-    /**
-     * 4. OBTENER PERFIL DE USUARIO
-     */
     @GetMapping("/{id}")
     public ResponseEntity<?> obtenerPerfil(@PathVariable Long id) {
         return userRepository.findById(id)
