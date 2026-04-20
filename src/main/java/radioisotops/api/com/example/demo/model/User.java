@@ -59,8 +59,8 @@ public class User {
     @Column(name = "notif_sincro")
     private Boolean notifSincro = false;
 
-    @Column(name = "requiere_cambio_password", nullable = false)
-    private boolean requiereCambioPassword = true;
+    @Column(name = "requiere_cambio_password")
+    private Boolean requiereCambioPassword = true;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     @JsonManagedReference
