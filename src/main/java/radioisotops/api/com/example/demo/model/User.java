@@ -59,6 +59,9 @@ public class User {
     @Column(name = "notif_sincro")
     private Boolean notifSincro = false;
 
+    @Column(name = "requiere_cambio_password", nullable = false)
+    private boolean requiereCambioPassword = true;
+
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     @JsonManagedReference
     private Doctor doctor;
@@ -221,5 +224,13 @@ public class User {
 
     public void setPatient(Patient patient) {
         this.patient = patient;
+    }
+
+    public boolean isRequiereCambioPassword() {
+        return requiereCambioPassword;
+    }
+
+    public void setRequiereCambioPassword(boolean requiereCambioPassword) {
+        this.requiereCambioPassword = requiereCambioPassword;
     }
 }

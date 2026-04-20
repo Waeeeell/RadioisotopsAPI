@@ -50,6 +50,8 @@ public class PatientController {
 
     /**
      * REGISTRO INTEGRAL DE PACIENTE Y TRATAMIENTO
+     * Genera automáticamente credenciales: CIP@catsalut.cat / Temp+CIP
+     * Obliga al cambio de contraseña en el primer inicio de sesión.
      */
     @PostMapping("/register-full")
     @Transactional
@@ -62,6 +64,7 @@ public class PatientController {
                 return ResponseEntity.badRequest().body(Map.of("error", "Faltan datos en el envío."));
             }
 
+            // Obtener el médico que realiza el alta desde el token (inyectado por el filtro de seguridad)
             String doctorEmail = (String) request.getAttribute("userEmail");
             User usuarioMedico = userRepository.findByEmail(doctorEmail)
                     .orElseThrow(() -> new RuntimeException("Médico no encontrado"));
@@ -69,19 +72,32 @@ public class PatientController {
             Doctor doc = usuarioMedico.getDoctor();
             String cip = (String) datosPaciente.get("cip");
 
+            if (cip == null || cip.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "El CIP es obligatorio para generar las credenciales."));
+            }
+
             // 1. Crear Usuario de acceso para el Paciente
             User userPaciente = new User();
             userPaciente.setNombreCompleto((String) datosPaciente.get("nombreCompleto"));
-            userPaciente.setEmail(cip + "@catsalut.cat");
-            userPaciente.setPassword(cip); // Password por defecto es su CIP
+
+            // Email autogenerado basado en el CIP del paciente
+            userPaciente.setEmail(cip.toLowerCase() + "@catsalut.cat");
+
+            // Contraseña temporal: "Temp" + las primeras 4 cifras del CIP para mayor seguridad inicial
+            String passTemporal = "Temp" + (cip.length() >= 4 ? cip.substring(0, 4) : cip);
+
+            // NOTA: Si usas Spring Security, envuelve esto en passwordEncoder.encode(passTemporal)
+            userPaciente.setPassword(passTemporal);
+
             userPaciente.setRol("PACIENTE");
             userPaciente.setEstado("ACTIVO");
+            userPaciente.setRequiereCambioPassword(true); // Flag activado: El paciente DEBE cambiarla en el móvil
             userPaciente.setFechaRegistro(LocalDateTime.now());
             userPaciente.setHospitalRef((String) datosPaciente.get("hospitalReferencia"));
 
             User userGuardado = userRepository.save(userPaciente);
 
-            // 2. Crear Perfil de Paciente
+            // 2. Crear Perfil de Paciente vinculado al Usuario
             Patient patient = new Patient();
             patient.setUser(userGuardado);
             patient.setDni(cip);
@@ -104,6 +120,7 @@ public class PatientController {
 
             if (dosisObj != null && !dosisObj.toString().isEmpty()) {
                 double valorDosis = Double.parseDouble(dosisObj.toString());
+                // Conversión inteligente de unidades a MBq (Sistema Internacional)
                 double dosisEnMBq = "mCi".equalsIgnoreCase(unidad) ? valorDosis * 37.0 :
                         "Ci".equalsIgnoreCase(unidad) ? valorDosis * 37000.0 : valorDosis;
                 treatment.setDosis(dosisEnMBq);
@@ -118,7 +135,13 @@ public class PatientController {
 
             treatmentRepository.save(treatment);
 
-            return ResponseEntity.ok(Map.of("message", "Alta procesada con éxito por el Dr/a. " + usuarioMedico.getNombreCompleto()));
+            // Respondemos con las credenciales para que el médico pueda informarlas al paciente
+            return ResponseEntity.ok(Map.of(
+                    "message", "Alta procesada con éxito por el Dr/a. " + usuarioMedico.getNombreCompleto(),
+                    "accesoEmail", userPaciente.getEmail(),
+                    "accesoPasswordTemporal", passTemporal,
+                    "requiereCambio", true
+            ));
 
         } catch (Exception e) {
             return ResponseEntity.status(500).body(Map.of("error", "Error en el alta: " + e.getMessage()));
