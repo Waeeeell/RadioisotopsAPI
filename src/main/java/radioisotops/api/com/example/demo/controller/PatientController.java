@@ -311,4 +311,40 @@ public class PatientController {
             return ResponseEntity.ok(List.of());
         }
     }
+
+    /**
+     * DATOS PARA EL DASHBOARD DEL MÓVIL (PACIENTE)
+     */
+    @GetMapping("/dashboard/{userId}")
+    public ResponseEntity<?> obtenerDashboardPaciente(@PathVariable Long userId) {
+        return patientRepository.findByUserId(userId).map(p -> {
+            Map<String, Object> dashboard = new HashMap<>();
+
+            // 1. Nombre (Primer nombre solamente)
+            String nombreCompleto = p.getUser().getNombreCompleto();
+            dashboard.put("nombre", nombreCompleto.split(" ")[0]);
+
+            // 2. Tratamiento y Progreso
+            Treatment t = treatmentRepository.findFirstByPatientOrderByFechaInicioDesc(p);
+            if (t != null) {
+                double dosisInicial = t.getDosis();
+                double activitatActual = calcularActivitatActual(t.getRadioisotopo(), dosisInicial, t.getFechaInicio());
+
+                // Calculamos el progreso inverso: cuanto menos radiación queda, más progreso hay
+                // Si la actividad actual es el 10% de la inicial, el progreso es el 90%
+                double porcentajeRestante = (activitatActual / dosisInicial) * 100;
+                int progreso = (int) Math.round(100 - porcentajeRestante);
+
+                dashboard.put("progreso", Math.max(0, Math.min(100, progreso))); // Asegurar rango 0-100
+                dashboard.put("radioisotopo", t.getRadioisotopo());
+            } else {
+                dashboard.put("progreso", 0);
+            }
+
+            // 3. Próxima Cita (Hardcoded por ahora o de tu lógica de negocio)
+            dashboard.put("proximaCita", "Pendiente de confirmar");
+
+            return ResponseEntity.ok(dashboard);
+        }).orElse(ResponseEntity.status(404).body(Map.of("error", "Paciente no encontrado")));
+    }
 }
