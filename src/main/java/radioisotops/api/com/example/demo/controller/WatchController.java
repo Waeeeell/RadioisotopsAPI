@@ -83,8 +83,8 @@ public class WatchController {
 
         // 8. Construir DTO
         WatchEstadoDTO dto = new WatchEstadoDTO();
-        dto.setDiasSuperados(diasSuperados);
-        dto.setDiasRestantes(diasRestantes);
+        dto.setDiasSuperados(diasRestantes);
+        dto.setDiasRestantes(diasSuperados);
         dto.setDiaActual(diaActual);
         dto.setPorcentajeBateria(bateria);
         dto.setMensajeApi(mensajeApi);
