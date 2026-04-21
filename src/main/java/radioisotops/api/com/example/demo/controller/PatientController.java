@@ -347,4 +347,25 @@ public class PatientController {
             return ResponseEntity.ok(dashboard);
         }).orElse(ResponseEntity.status(404).body(Map.of("error", "Paciente no encontrado")));
     }
+
+    @PostMapping("/{userId}/update-mood")
+    @Transactional
+    public ResponseEntity<?> actualizarEstadoEmocional(@PathVariable Long userId, @RequestBody Map<String, String> payload) {
+        return patientRepository.findByUserId(userId).map(p -> {
+            String moodString = payload.get("mood");
+
+            // Mapeo de String a Integer para la DB
+            int moodValue = switch (moodString) {
+                case "happy" -> 1;
+                case "neutral" -> 2;
+                case "straight" -> 3;
+                case "sad" -> 4;
+                default -> 2; // Por defecto neutral
+            };
+
+            p.setValorEmocional(moodValue);
+            patientRepository.save(p);
+            return ResponseEntity.ok(Map.of("message", "Estado emocional actualizado"));
+        }).orElse(ResponseEntity.status(404).body(Map.of("error", "Paciente no encontrado")));
+    }
 }
