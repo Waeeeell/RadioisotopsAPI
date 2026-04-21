@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import radioisotops.api.com.example.demo.model.*;
 import radioisotops.api.com.example.demo.repository.*;
+import radioisotops.api.com.example.demo.service.EmailService;
 import radioisotops.api.com.example.demo.service.PdfGeneratorService;
 
 import java.io.IOException;
@@ -47,6 +48,10 @@ public class PatientController {
 
     @Autowired
     private ActivityRepository activityRepository;
+
+    // AÑADE ESTA LÍNEA:
+    @Autowired
+    private EmailService emailService;
 
     /**
      * REGISTRO INTEGRAL DE PACIENTE Y TRATAMIENTO
@@ -366,6 +371,44 @@ public class PatientController {
             p.setValorEmocional(moodValue);
             patientRepository.save(p);
             return ResponseEntity.ok(Map.of("message", "Estado emocional actualizado"));
+        }).orElse(ResponseEntity.status(404).body(Map.of("error", "Paciente no encontrado")));
+    }
+
+    @PostMapping("/{userId}/contact-doctor")
+    @Transactional
+    public ResponseEntity<?> contactarDoctor(@PathVariable Long userId, @RequestBody Map<String, String> payload) {
+        return patientRepository.findByUserId(userId).map(p -> {
+            try {
+                String nombre = payload.get("nombre");
+                String asunto = payload.get("asunto");
+                String mensaje = payload.get("mensaje");
+                String correoRemitente = payload.get("correo");
+
+                // 1. Guardamos el mensaje en la base de datos (Notificación para la Web)
+                Notification nota = new Notification();
+                nota.setMensaje("CONSULTA DE SOPORTE: " + mensaje);
+                nota.setAsunto(asunto);
+                nota.setFechaEnvio(LocalDateTime.now());
+                nota.setLeida(false);
+                nota.setPatient(p);
+                nota.setDoctor(p.getDoctorAsignado());
+                notificationRepository.save(nota);
+
+                // 2. Enviamos el correo real por Gmail al doctor
+                // Asumiendo que tienes emailService configurado
+                String emailDoctor = p.getDoctorAsignado().getUser().getEmail();
+                emailService.enviarCorreoSoporte(
+                        emailDoctor,
+                        payload.get("asunto"),
+                        payload.get("mensaje"),
+                        payload.get("nombre"),
+                        payload.get("correo")
+                );
+
+                return ResponseEntity.ok(Map.of("message", "Mensaje enviado con éxito al equipo médico."));
+            } catch (Exception e) {
+                return ResponseEntity.status(500).body(Map.of("error", "Error al enviar: " + e.getMessage()));
+            }
         }).orElse(ResponseEntity.status(404).body(Map.of("error", "Paciente no encontrado")));
     }
 }

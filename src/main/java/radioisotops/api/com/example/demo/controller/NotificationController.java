@@ -116,4 +116,24 @@ public class NotificationController {
 
         return ResponseEntity.ok(Map.of("todayCount", count));
     }
+
+    /**
+     * Obtener solo los mensajes de soporte (consultas) enviados por pacientes al médico.
+     */
+    @GetMapping("/consultas")
+    public ResponseEntity<?> obtenerConsultasRecibidas(HttpServletRequest request) {
+        String email = (String) request.getAttribute("userEmail");
+        User user = userRepository.findByEmail(email).orElse(null);
+
+        if (user == null || user.getDoctor() == null) {
+            return ResponseEntity.ok(List.of());
+        }
+
+        // Filtramos las notificaciones que tienen un "asunto" (mensajes de soporte)
+        // y pertenecen a este doctor, ordenadas por las más recientes.
+        List<Notification> consultas = notificationRepository
+                .findByDoctorIdAndAsuntoIsNotNullOrderByFechaEnvioDesc(user.getDoctor().getId());
+
+        return ResponseEntity.ok(consultas);
+    }
 }

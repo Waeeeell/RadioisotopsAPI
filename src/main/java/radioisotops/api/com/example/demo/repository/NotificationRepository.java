@@ -13,4 +13,5 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     boolean existsByPatientIdAndLeidaFalse(Long patientId);
 
     List<Notification> findByPatientDniAndLeidaFalse(String dni);
+    List<Notification> findByDoctorIdAndAsuntoIsNotNullOrderByFechaEnvioDesc(Long doctorId);
 }

@@ -95,4 +95,25 @@ public class EmailService {
             System.err.println(">>> [SENDGRID-API] ERROR: " + e.getMessage());
         }
     }
+
+    /**
+     * Envío de consulta de soporte desde el paciente al médico (CON DISEÑO)
+     */
+    @Async
+    public void enviarCorreoSoporte(String emailDoctor, String asuntoWeb, String mensajePaciente, String nombrePaciente, String correoPaciente) {
+        String htmlContent = "<html><body style='font-family: Arial, sans-serif; color: #333; background-color: #f9fafb; padding: 20px;'>"
+                + "<div style='max-width: 600px; margin: 0 auto; background: white; border: 1px solid #e5e7eb; padding: 40px; border-radius: 12px; shadow: 0 4px 6px -1px rgba(0,0,0,0.1);'>"
+                + "<h2 style='color: #ef4444; text-align: center;'>Nueva Consulta de Soporte</h2>"
+                + "<p style='font-size: 16px;'>Has recibido una consulta de un paciente a través de la App:</p>"
+                + "<div style='background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ef4444;'>"
+                + "<strong>Paciente:</strong> " + nombrePaciente + "<br/>"
+                + "<strong>Asunto:</strong> " + asuntoWeb + "<br/>"
+                + "<strong>Email de contacto:</strong> " + correoPaciente + "<br/><br/>"
+                + "<strong>Mensaje:</strong><br/>" + mensajePaciente
+                + "</div>"
+                + "<p style='font-size: 14px; color: #6b7280;'>Puedes responder directamente al paciente usando su correo de contacto arriba indicado.</p>"
+                + "</div></body></html>";
+
+        ejecutarEnvio(emailDoctor, "SOPORTE APP: " + asuntoWeb, htmlContent);
+    }
 }

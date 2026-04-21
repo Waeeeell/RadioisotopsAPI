@@ -41,26 +41,31 @@ public class WatchController {
             return ResponseEntity.status(404).body("Sin tratamiento activo");
         }
 
-        // 3. Calcular días de aislamiento según radioisótopo
-        // I-131: ~8 días de aislamiento domiciliario estándar
-        // Lu-177: ~7 días
+        // 3. Total de días de aislamiento según radioisótopo
         int diasTotalesAislamiento = calcularDiasTotalesAislamiento(t.getRadioisotopo());
 
-        // 4. Calcular días transcurridos desde inicio del tratamiento
-        long diasTranscurridos = ChronoUnit.DAYS.between(
-                t.getFechaInicio().toLocalDate(),
-                LocalDateTime.now().toLocalDate());
-
-        int diaActual = (int) Math.min(diasTranscurridos + 1, diasTotalesAislamiento);
-        int diasSuperados = (int) Math.min(diasTranscurridos, diasTotalesAislamiento);
-        int diasRestantes = Math.max(diasTotalesAislamiento - diasSuperados, 0);
-
-        // 5. Generar mensaje dinámico según fase
+        // 4. Calcular actividad actual (mismo criterio que la web)
+        double dosisInicial = t.getDosis();
         double actividadActual = calcularActividadActual(
-                t.getRadioisotopo(), t.getDosis(), t.getFechaInicio());
+                t.getRadioisotopo(), dosisInicial, t.getFechaInicio());
+
+        // 5. ✅ CÁLCULO CORREGIDO — mismo criterio que PatientController (web)
+        //    porcentajeSuperado: cuánto del tratamiento ha "decaído" (0.0 → 1.0)
+        //    Cuando actividad = dosisInicial → 0% superado (día 0)
+        //    Cuando actividad = 0            → 100% superado (día final)
+        double porcentajeSuperado = (dosisInicial > 0)
+                ? Math.max(0.0, Math.min(1.0, 1.0 - (actividadActual / dosisInicial)))
+                : 0.0;
+
+        // Entero estricto con floor: 2.9 días → 2, nunca 3
+        int diasSuperados = (int) Math.floor(porcentajeSuperado * diasTotalesAislamiento);
+        diasSuperados = Math.max(0, Math.min(diasTotalesAislamiento, diasSuperados));
+
+        int diasRestantes = diasTotalesAislamiento - diasSuperados;
+        int diaActual     = Math.min(diasSuperados + 1, diasTotalesAislamiento);
 
         // 6. Batería del dispositivo
-        int bateria = 72; // valor por defecto
+        int bateria = 72;
         Device device = deviceRepository.findByPatientDni(cip).orElse(null);
         if (device != null && device.getEstado() != null) {
             if (device.getEstado().contains("Batería Baja"))
@@ -69,13 +74,11 @@ public class WatchController {
                 bateria = 85;
         }
 
-        // 7. Instrucción personalizada del médico (si hay notificación no leída)
+        // 7. Mensaje: prioridad al médico, si no, dinámico según actividad
         String mensajeApi = generarMensajeDinamico(actividadActual, diasSuperados, diasTotalesAislamiento);
         List<Notification> instrucciones = notificationRepository.findByPatientDniAndLeidaFalse(cip);
         if (!instrucciones.isEmpty()) {
-            // El médico ha enviado una instrucción: tiene prioridad
-            mensajeApi = instrucciones.get(0).getMensaje()
-                    .replace("CONSEJO MÉDICO: ", "");
+            mensajeApi = instrucciones.get(0).getMensaje().replace("CONSEJO MÉDICO: ", "");
         }
 
         // 8. Construir DTO
@@ -98,21 +101,16 @@ public class WatchController {
     // --- Helpers ---
 
     private int calcularDiasTotalesAislamiento(String radioisotopo) {
-        if (radioisotopo == null)
-            return 8;
-        if (radioisotopo.contains("I-131") || radioisotopo.contains("Iodo"))
-            return 8;
-        if (radioisotopo.contains("Lu-177") || radioisotopo.contains("Lutecio"))
-            return 7;
-        if (radioisotopo.contains("Co-60") || radioisotopo.contains("Cobalto"))
-            return 14;
-        return 8; // default
+        if (radioisotopo == null)                                          return 8;
+        if (radioisotopo.contains("I-131")  || radioisotopo.contains("Iodo"))     return 8;
+        if (radioisotopo.contains("Lu-177") || radioisotopo.contains("Lutecio"))  return 7;
+        if (radioisotopo.contains("Co-60")  || radioisotopo.contains("Cobalto"))  return 14;
+        return 8;
     }
 
-    private double calcularActividadActual(String isotopo, double dosiInicial, LocalDateTime fechaInicio) {
+    private double calcularActividadActual(String isotopo, double dosisInicial, LocalDateTime fechaInicio) {
         double tMedHoras;
 
-        // Cambiamos el switch(true) por if/else para evitar errores de compilación con guards
         if (isotopo == null) {
             tMedHoras = -1;
         } else if (isotopo.contains("I-131") || isotopo.contains("Iodo")) {
@@ -125,51 +123,40 @@ public class WatchController {
             tMedHoras = -1;
         }
 
-        if (tMedHoras == -1) return dosiInicial;
+        if (tMedHoras == -1) return dosisInicial;
 
         long horasTranscurridas = ChronoUnit.HOURS.between(fechaInicio, LocalDateTime.now());
-        return dosiInicial * Math.pow(0.5, (double) horasTranscurridas / tMedHoras);
+        return dosisInicial * Math.pow(0.5, (double) horasTranscurridas / tMedHoras);
     }
 
     private String generarMensajeDinamico(double actividad, int diasSuperados, int diasTotales) {
-        if (actividad > 400)
-            return "Mantente en aislamiento.\nEvita contacto con otras personas.";
-        if (actividad > 100)
-            return "Puedes moverte por casa,\npero evita salir al exterior.";
-        if (actividad > 1)
-            return "Puedes salir a dar un paseo\nde 15 minutos por el parque.";
+        if (actividad > 400) return "Mantente en aislamiento.\nEvita contacto con otras personas.";
+        if (actividad > 100) return "Puedes moverte por casa,\npero evita salir al exterior.";
+        if (actividad > 1)   return "Puedes salir a dar un paseo\nde 15 minutos por el parque.";
         return "¡Aislamiento completado!\nYa puedes hacer vida normal.";
     }
 
     private String generarTitulo(int diasSuperados, int diasTotales) {
-        if (diasSuperados == 0)
-            return "Inicio del tratamiento";
-        if (diasSuperados >= diasTotales / 2)
-            return "Ya vas por la mitad!";
+        if (diasSuperados == 0)                    return "Inicio del tratamiento";
+        if (diasSuperados >= diasTotales / 2)      return "¡Ya vas por la mitad!";
         return "Vas por el día " + (diasSuperados + 1);
     }
 
     private String generarMensajeParte1(double actividad) {
-        if (actividad > 400)
-            return "Debes permanecer en ";
-        if (actividad > 100)
-            return "Puedes moverte por ";
+        if (actividad > 400) return "Debes permanecer en ";
+        if (actividad > 100) return "Puedes moverte por ";
         return "Puedes salir a ";
     }
 
     private String generarMensajeResaltado(double actividad) {
-        if (actividad > 400)
-            return "aislamiento total";
-        if (actividad > 100)
-            return "casa con precaución";
+        if (actividad > 400) return "aislamiento total";
+        if (actividad > 100) return "casa con precaución";
         return "dar un paseo";
     }
 
     private String generarMensajeParte2(double actividad) {
-        if (actividad > 400)
-            return ".\nSin visitas ni salidas.";
-        if (actividad > 100)
-            return ".\nEvita salir al exterior.";
-        return ",\npero recuerda; de 15 minutos!";
+        if (actividad > 400) return ".\nSin visitas ni salidas.";
+        if (actividad > 100) return ".\nEvita salir al exterior.";
+        return ",\n¡pero recuerda, solo 15 minutos!";
     }
 }

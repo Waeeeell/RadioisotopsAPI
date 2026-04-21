@@ -21,6 +21,8 @@ public class Notification {
 
     private Boolean leida = false; // Valor por defecto
 
+    private String asunto;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "doctor_id")
     @JsonIgnore
@@ -54,6 +56,9 @@ public class Notification {
 
     public Boolean getLeida() { return leida; }
     public void setLeida(Boolean leida) { this.leida = leida; }
+
+    public String getAsunto() { return asunto; }
+    public void setAsunto(String asunto) { this.asunto = asunto; }
 
     public Patient getPatient() { return patient; }
     public void setPatient(Patient patient) { this.patient = patient; }
