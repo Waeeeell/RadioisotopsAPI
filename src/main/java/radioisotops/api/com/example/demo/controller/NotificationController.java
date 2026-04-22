@@ -3,23 +3,20 @@ package radioisotops.api.com.example.demo.controller;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import radioisotops.api.com.example.demo.model.*;
 import radioisotops.api.com.example.demo.repository.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/notifications")
-// Configuración robusta para evitar bloqueos del Worker en peticiones frecuentes
-@CrossOrigin(
-        origins = "*",
-        allowedHeaders = "*",
-        methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.OPTIONS}
-)
+@CrossOrigin(origins = "*", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.OPTIONS})
 public class NotificationController {
 
     @Autowired
@@ -28,28 +25,27 @@ public class NotificationController {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private PatientRepository patientRepository;
+
     /**
-     * Obtener todas las notificaciones del médico logueado.
+     * Mapeo de mensajes oficiales en el Backend
      */
+    private static final Map<String, String> MENSAJES_OFICIALES = new HashMap<>() {{
+        put("FASE_ALTA", "Dosi administrada-400MBq: Dormir sol, rentar roba separada, dues descàrregues de cisterna, distància 1m amb adults, no contacte amb infants i embarassades, beu molta aigua.");
+        put("FASE_DECAIMIENTO", "400MBq-2MBq: La radioactivitat està disminuint, mantingui les precaucions bàsiques: Dormir sol, rentar roba separada, dues descàrregues de cisterna, distància 1m amb adults, no contacte amb infants i embarassades, beu molta aigua.");
+        put("FASE_EXENCION", "1MBq-0MBq: Exempció, normalitza les relacions socials.");
+    }};
+
     @GetMapping("/me")
     public ResponseEntity<?> obtenerMisNotificaciones(HttpServletRequest request) {
         String email = (String) request.getAttribute("userEmail");
         if (email == null) return ResponseEntity.status(401).body("No autorizado");
-
         User user = userRepository.findByEmail(email).orElse(null);
-
-        // Si el usuario es ADMIN, no tendrá notificaciones de médico, devolvemos lista vacía
-        if (user == null || user.getDoctor() == null) {
-            return ResponseEntity.ok(List.of());
-        }
-
-        List<Notification> notas = notificationRepository.findByDoctorIdOrderByFechaEnvioDesc(user.getDoctor().getId());
-        return ResponseEntity.ok(notas);
+        if (user == null || user.getDoctor() == null) return ResponseEntity.ok(List.of());
+        return ResponseEntity.ok(notificationRepository.findByDoctorIdOrderByFechaEnvioDesc(user.getDoctor().getId()));
     }
 
-    /**
-     * Marcar una notificación como leída.
-     */
     @PutMapping("/{id}/read")
     public ResponseEntity<?> marcarComoLeida(@PathVariable Long id) {
         return notificationRepository.findById(id).map(n -> {
@@ -59,81 +55,54 @@ public class NotificationController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    /**
-     * Contador de notificaciones no leídas para la campana de la NavBar.
-     */
     @GetMapping("/count")
     public ResponseEntity<?> contarNoLeidas(HttpServletRequest request) {
         String email = (String) request.getAttribute("userEmail");
         if (email == null) return ResponseEntity.ok(Map.of("unreadCount", 0));
-
         User user = userRepository.findByEmail(email).orElse(null);
-
-        // Si no es médico o no existe, devolvemos 0 en formato JSON
-        if (user == null || user.getDoctor() == null) {
-            return ResponseEntity.ok(Map.of("unreadCount", 0));
-        }
-
-        long count = notificationRepository.countByDoctorIdAndLeidaFalse(user.getDoctor().getId());
-        return ResponseEntity.ok(Map.of("unreadCount", count));
+        if (user == null || user.getDoctor() == null) return ResponseEntity.ok(Map.of("unreadCount", 0));
+        return ResponseEntity.ok(Map.of("unreadCount", notificationRepository.countByDoctorIdAndLeidaFalse(user.getDoctor().getId())));
     }
 
-    /**
-     * Obtener mensajes/instrucciones destinados a un paciente específico por CIP/DNI.
-     */
     @GetMapping("/patient/{cip}")
     public ResponseEntity<?> obtenerMensajesParaPaciente(@PathVariable String cip) {
         List<Notification> instrucciones = notificationRepository.findByPatientDniAndLeidaFalse(cip);
-
         if (!instrucciones.isEmpty()) {
             instrucciones.forEach(n -> n.setLeida(true));
             notificationRepository.saveAll(instrucciones);
         }
-
         return ResponseEntity.ok(instrucciones);
     }
 
-    /**
-     * Contador de alertas recibidas en el día actual para el Dashboard.
-     */
-    @GetMapping("/count-today")
-    public ResponseEntity<?> contarAlertasHoy(HttpServletRequest request) {
-        String email = (String) request.getAttribute("userEmail");
-        if (email == null) return ResponseEntity.ok(Map.of("todayCount", 0));
-
-        User user = userRepository.findByEmail(email).orElse(null);
-
-        if (user == null || user.getDoctor() == null) {
-            return ResponseEntity.ok(Map.of("todayCount", 0));
-        }
-
-        LocalDateTime inicioHoy = LocalDate.now().atStartOfDay();
-
-        long count = notificationRepository.countByDoctorIdAndFechaEnvioAfter(
-                user.getDoctor().getId(),
-                inicioHoy
-        );
-
-        return ResponseEntity.ok(Map.of("todayCount", count));
-    }
-
-    /**
-     * Obtener solo los mensajes de soporte (consultas) enviados por pacientes al médico.
-     */
     @GetMapping("/consultas")
     public ResponseEntity<?> obtenerConsultasRecibidas(HttpServletRequest request) {
         String email = (String) request.getAttribute("userEmail");
         User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null || user.getDoctor() == null) return ResponseEntity.ok(List.of());
+        return ResponseEntity.ok(notificationRepository.findByDoctorIdAndAsuntoIsNotNullOrderByFechaEnvioDesc(user.getDoctor().getId()));
+    }
 
-        if (user == null || user.getDoctor() == null) {
-            return ResponseEntity.ok(List.of());
-        }
+    @PostMapping("/patient/{cip}/send-instruction")
+    @Transactional
+    public ResponseEntity<?> enviarInstruccionReloj(@PathVariable String cip, @RequestBody Map<String, String> payload) {
+        return patientRepository.findByDni(cip).map(p -> {
+            String claveMensaje = payload.get("clave"); // El front envía "FASE_ALTA"
+            String textoFinal = MENSAJES_OFICIALES.getOrDefault(claveMensaje, payload.get("mensaje"));
 
-        // Filtramos las notificaciones que tienen un "asunto" (mensajes de soporte)
-        // y pertenecen a este doctor, ordenadas por las más recientes.
-        List<Notification> consultas = notificationRepository
-                .findByDoctorIdAndAsuntoIsNotNullOrderByFechaEnvioDesc(user.getDoctor().getId());
+            if (textoFinal == null || textoFinal.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Mensaje no definido"));
+            }
 
-        return ResponseEntity.ok(consultas);
+            Notification nota = new Notification();
+            nota.setMensaje(textoFinal);
+            nota.setAsunto("Consonancia de Salud");
+            nota.setFechaEnvio(LocalDateTime.now());
+            nota.setLeida(false);
+            nota.setPatient(p);
+            nota.setDoctor(p.getDoctorAsignado());
+            notificationRepository.save(nota);
+
+            return ResponseEntity.ok(Map.of("message", "Instrucció enviada"));
+        }).orElse(ResponseEntity.notFound().build());
     }
 }
