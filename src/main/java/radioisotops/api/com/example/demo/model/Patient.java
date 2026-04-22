@@ -2,6 +2,7 @@ package radioisotops.api.com.example.demo.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "patients") // O "pacientes"
@@ -37,6 +38,11 @@ public class Patient {
 
     @OneToOne(mappedBy = "patient", cascade = CascadeType.ALL)
     private Device device;
+
+    private String watchId;
+    private String watchModel;
+    private Integer watchBattery;
+    private LocalDateTime lastSync;
 
     // --- Constructores ---
     public Patient() {
