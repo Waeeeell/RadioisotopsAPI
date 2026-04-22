@@ -5,15 +5,15 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "patients") // O "pacientes"
+@Table(name = "patients")
 public class Patient {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // PK del paciente
+    private Long id;
 
-    @Column(name = "fecha_nacimiento", nullable = true) // Cambiado a true
-    private LocalDate fechaNacimiento;// Mejor LocalDate para fechas sin hora
+    @Column(name = "fecha_nacimiento", nullable = true)
+    private LocalDate fechaNacimiento;
 
     @Column(nullable = false, unique = true)
     private String dni;
@@ -24,25 +24,22 @@ public class Patient {
     @Column(name = "valor_emocional")
     private Integer valorEmocional = 50;
 
-    // RELACIÓN: CON USER (FOREIGN KEY) ---
-    // Un paciente es un usuario
     @OneToOne
     @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
     private User user;
 
-    // RELACIÓN: CON DOCTOR (FOREIGN KEY) ---
-    // Muchos pacientes pueden estar asignados a un mismo Doctor
     @ManyToOne
-    @JoinColumn(name = "doctor_id", referencedColumnName = "id") // Esta es tu "Id_Medico_Asign" del draw.io
+    @JoinColumn(name = "doctor_id", referencedColumnName = "id")
     private Doctor doctorAsignado;
 
     @OneToOne(mappedBy = "patient", cascade = CascadeType.ALL)
     private Device device;
 
+    // Campos para el Smartwatch
     private String watchId;
     private String watchModel;
     private Integer watchBattery;
-    private LocalDateTime lastSync;
+    private LocalDateTime watchUltimaSinc; // Renombrado para coincidir con el controlador
 
     // --- Constructores ---
     public Patient() {
@@ -90,9 +87,13 @@ public class Patient {
         this.numSs = numSs;
     }
 
-    public Integer getValorEmocional() { return valorEmocional; }
+    public Integer getValorEmocional() {
+        return valorEmocional;
+    }
 
-    public void setValorEmocional(Integer valorEmocional) { this.valorEmocional = valorEmocional; }
+    public void setValorEmocional(Integer valorEmocional) {
+        this.valorEmocional = valorEmocional;
+    }
 
     public User getUser() {
         return user;
@@ -110,7 +111,44 @@ public class Patient {
         this.doctorAsignado = doctorAsignado;
     }
 
-    public Device getDevice() { return device; }
+    public Device getDevice() {
+        return device;
+    }
 
-    public void setDevice(Device device) { this.device = device; }
+    public void setDevice(Device device) {
+        this.device = device;
+    }
+
+    // --- NUEVAS IMPLEMENTACIONES PARA EL RELOJ ---
+    public String getWatchId() {
+        return watchId;
+    }
+
+    public void setWatchId(String watchId) {
+        this.watchId = watchId;
+    }
+
+    public String getWatchModel() {
+        return watchModel;
+    }
+
+    public void setWatchModel(String watchModel) {
+        this.watchModel = watchModel;
+    }
+
+    public Integer getWatchBattery() {
+        return watchBattery;
+    }
+
+    public void setWatchBattery(Integer watchBattery) {
+        this.watchBattery = watchBattery;
+    }
+
+    public LocalDateTime getWatchUltimaSinc() {
+        return watchUltimaSinc;
+    }
+
+    public void setWatchUltimaSinc(LocalDateTime watchUltimaSinc) {
+        this.watchUltimaSinc = watchUltimaSinc;
+    }
 }

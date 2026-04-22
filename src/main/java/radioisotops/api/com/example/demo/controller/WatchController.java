@@ -46,12 +46,19 @@ public class WatchController {
         int diasRestantes = diasTotales - diasSuperados;
         int diaActual = Math.min(diasSuperados + 1, diasTotales);
 
-        // Batería
-        int bateria = 72;
-        Device device = deviceRepository.findByPatientDni(cip).orElse(null);
-        if (device != null && device.getEstado() != null) {
-            if (device.getEstado().contains("Batería Baja")) bateria = 15;
-            else if (device.getEstado().equals("Activo"))    bateria = 85;
+        // Batería Dinámica: Priorizamos el valor guardado en el paciente
+        int bateria = (patient.getWatchBattery() != null) ? patient.getWatchBattery() : 0;
+
+        // Lógica de respaldo si el valor en Patient es 0 o null
+        if (bateria == 0) {
+            Device device = deviceRepository.findByPatientDni(cip).orElse(null);
+            if (device != null && device.getEstado() != null) {
+                if (device.getEstado().contains("Batería Baja")) bateria = 15;
+                else if (device.getEstado().equals("Activo"))    bateria = 85;
+                else bateria = 72; // Valor por defecto original
+            } else {
+                bateria = 72; // Valor por defecto original
+            }
         }
 
         // ── MENSAJES ──────────────────────────────────────────────────────────
@@ -63,37 +70,31 @@ public class WatchController {
         String mensajeHome = generarMensajeHome(actividadActual);
 
         // Si el médico envió un mensaje directo → va primero en la rotación
-        // y reemplaza el mensajeHome con un resumen de 1 línea
         List<Notification> notifsMedico = notificationRepository.findByPatientDniAndLeidaFalse(cip);
         if (!notifsMedico.isEmpty()) {
             String rawMedico = notifsMedico.get(0).getMensaje()
                     .replace("CONSEJO MÉDICO: ", "").trim();
 
-            // Dividir por comas o puntos en instrucciones individuales
             String[] partes = rawMedico.split("[,.]");
             List<String> instruccionesMedico = new ArrayList<>();
             for (String p : partes) {
                 String limpio = p.trim();
                 if (!limpio.isEmpty()) instruccionesMedico.add(limpio);
             }
-            // Añadir al principio de la rotación
             instruccionesMedico.addAll(instrucciones);
             instrucciones = instruccionesMedico;
-
-            // HomeScreen: solo la primera frase del médico (corta)
             mensajeHome = instruccionesMedico.get(0);
         }
 
         // ── DTO ───────────────────────────────────────────────────────────────
         WatchEstadoDTO dto = new WatchEstadoDTO();
-        dto.setDiasRestantes(diasSuperados);   // swap visual: izq = hechos
-        dto.setDiasSuperados(diasRestantes);   // swap visual: der = restantes
+        dto.setDiasRestantes(diasSuperados);
+        dto.setDiasSuperados(diasRestantes);
         dto.setDiaActual(diaActual);
         dto.setPorcentajeBateria(bateria);
         dto.setMensajeApi(mensajeHome);
         dto.setInstrucciones(instrucciones);
 
-        // ActivityScreen — campos de texto desglosados (mantenidos para compatibilidad)
         dto.setTitulo(generarTitulo(diasSuperados, diasTotales));
         dto.setMensajeParte1(generarMensajeParte1(actividadActual));
         dto.setMensajeResaltado(generarMensajeResaltado(actividadActual));
@@ -102,11 +103,29 @@ public class WatchController {
         return ResponseEntity.ok(dto);
     }
 
+    // ── RECEPTOR DE DATOS DEL RELOJ ──────────────────────────────────────────
+
+    @PostMapping("/actualizar-telemetria/{cip}")
+    public ResponseEntity<?> actualizarTelemetria(@PathVariable String cip, @RequestBody WatchEstadoDTO datosReloj) {
+        return patientRepository.findByDni(cip).map(p -> {
+            Device device = deviceRepository.findByPatientDni(cip).orElse(new Device());
+
+            device.setPatient(p);
+            device.setEstado("Activo");
+
+            // Guardamos el porcentaje real enviado por el reloj
+            p.setWatchBattery(datosReloj.getPorcentajeBateria());
+            p.setWatchUltimaSinc(LocalDateTime.now());
+
+            patientRepository.save(p);
+            deviceRepository.save(device);
+
+            return ResponseEntity.ok("Telemetría actualizada");
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    /**
-     * Mensaje MUY corto para HomeScreen — máx. 1 línea visible.
-     */
     private String generarMensajeHome(double actividad) {
         if (actividad > 400) return "Mantente en aislamiento total.";
         if (actividad > 100) return "Quédate en casa, evita salir.";
@@ -114,15 +133,9 @@ public class WatchController {
         return "Aislamiento completado.";
     }
 
-    /**
-     * Lista de instrucciones específicas para ActivityScreen (rotan).
-     * Basadas en la hoja de cálculo clínica.
-     */
     private List<String> generarInstruccionesFase(double actividad) {
         List<String> lista = new ArrayList<>();
-
         if (actividad > 400) {
-            // Fase inicial — máximo riesgo
             lista.add("Duerme solo");
             lista.add("Ropa lavada por separado");
             lista.add("2 descargas cisterna");
@@ -131,7 +144,6 @@ public class WatchController {
             lista.add("Sin contacto con embarazadas");
             lista.add("Bebe mucha agua");
         } else if (actividad > 1) {
-            // Fase de decaimiento
             lista.add("Radioactividad disminuyendo");
             lista.add("Duerme solo");
             lista.add("Ropa lavada por separado");
@@ -140,30 +152,28 @@ public class WatchController {
             lista.add("Sin contacto con embarazadas");
             lista.add("Bebe mucha agua");
         } else {
-            // Fase final — sin riesgo
             lista.add("Aislamiento completado");
             lista.add("Normaliza tus relaciones");
             lista.add("Vida normal");
         }
-
         return lista;
     }
 
     private int calcularDiasTotalesAislamiento(String r) {
-        if (r == null)                                         return 8;
-        if (r.contains("I-131")  || r.contains("Iodo"))       return 8;
-        if (r.contains("Lu-177") || r.contains("Lutecio"))    return 7;
-        if (r.contains("Co-60")  || r.contains("Cobalto"))    return 14;
+        if (r == null) return 8;
+        if (r.contains("I-131")  || r.contains("Iodo")) return 8;
+        if (r.contains("Lu-177") || r.contains("Lutecio")) return 7;
+        if (r.contains("Co-60")  || r.contains("Cobalto")) return 14;
         return 8;
     }
 
     private double calcularActividadActual(String isotopo, double dosisInicial, LocalDateTime fechaInicio) {
         double tMedHoras;
-        if (isotopo == null)                                           { tMedHoras = -1; }
-        else if (isotopo.contains("I-131") || isotopo.contains("Iodo"))   { tMedHoras = 192.48; }
-        else if (isotopo.contains("Lu-177") || isotopo.contains("Lutecio")){ tMedHoras = 159.36; }
-        else if (isotopo.contains("Co-60")  || isotopo.contains("Cobalto")){ tMedHoras = 46164.0; }
-        else                                                           { tMedHoras = -1; }
+        if (isotopo == null) { tMedHoras = -1; }
+        else if (isotopo.contains("I-131") || isotopo.contains("Iodo")) { tMedHoras = 192.48; }
+        else if (isotopo.contains("Lu-177") || isotopo.contains("Lutecio")) { tMedHoras = 159.36; }
+        else if (isotopo.contains("Co-60")  || isotopo.contains("Cobalto")) { tMedHoras = 46164.0; }
+        else { tMedHoras = -1; }
 
         if (tMedHoras == -1) return dosisInicial;
         long horas = ChronoUnit.HOURS.between(fechaInicio, LocalDateTime.now());
@@ -171,7 +181,7 @@ public class WatchController {
     }
 
     private String generarTitulo(int diasSuperados, int diasTotales) {
-        if (diasSuperados == 0)               return "Inicio del tratamiento";
+        if (diasSuperados == 0) return "Inicio del tratamiento";
         if (diasSuperados >= diasTotales / 2) return "¡Ya vas por la mitad!";
         return "Vas por el día " + (diasSuperados + 1);
     }
