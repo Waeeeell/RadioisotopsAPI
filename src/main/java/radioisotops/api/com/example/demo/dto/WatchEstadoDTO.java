@@ -6,7 +6,10 @@ public class WatchEstadoDTO {
     private int diasSuperados;
     private int diasRestantes;
     private int diaActual;
-    private int porcentajeBateria;
+
+    // Cambiado a Integer para manejar valores nulos (cuando aún no hay telemetría)
+    private Integer porcentajeBateria;
+
     private String mensajeApi;        // HomeScreen: 1 línea corta
     private String titulo;            // ActivityScreen: título
     private String mensajeParte1;
@@ -14,35 +17,88 @@ public class WatchEstadoDTO {
     private String mensajeParte2;
     private List<String> instrucciones; // ActivityScreen: lista que rota
 
+    // Constructor vacío obligatorio para la serialización JSON (Jackson)
     public WatchEstadoDTO() {}
 
-    public int getDiasSuperados() { return diasSuperados; }
-    public void setDiasSuperados(int d) { this.diasSuperados = d; }
+    // --- Getters y Setters ---
 
-    public int getDiasRestantes() { return diasRestantes; }
-    public void setDiasRestantes(int d) { this.diasRestantes = d; }
+    public int getDiasSuperados() {
+        return diasSuperados;
+    }
 
-    public int getDiaActual() { return diaActual; }
-    public void setDiaActual(int d) { this.diaActual = d; }
+    public void setDiasSuperados(int diasSuperados) {
+        this.diasSuperados = diasSuperados;
+    }
 
-    public int getPorcentajeBateria() { return porcentajeBateria; }
-    public void setPorcentajeBateria(int p) { this.porcentajeBateria = p; }
+    public int getDiasRestantes() {
+        return diasRestantes;
+    }
 
-    public String getMensajeApi() { return mensajeApi; }
-    public void setMensajeApi(String m) { this.mensajeApi = m; }
+    public void setDiasRestantes(int diasRestantes) {
+        this.diasRestantes = diasRestantes;
+    }
 
-    public String getTitulo() { return titulo; }
-    public void setTitulo(String t) { this.titulo = t; }
+    public int getDiaActual() {
+        return diaActual;
+    }
 
-    public String getMensajeParte1() { return mensajeParte1; }
-    public void setMensajeParte1(String m) { this.mensajeParte1 = m; }
+    public void setDiaActual(int diaActual) {
+        this.diaActual = diaActual;
+    }
 
-    public String getMensajeResaltado() { return mensajeResaltado; }
-    public void setMensajeResaltado(String m) { this.mensajeResaltado = m; }
+    public Integer getPorcentajeBateria() {
+        return porcentajeBateria;
+    }
 
-    public String getMensajeParte2() { return mensajeParte2; }
-    public void setMensajeParte2(String m) { this.mensajeParte2 = m; }
+    public void setPorcentajeBateria(Integer porcentajeBateria) {
+        this.porcentajeBateria = porcentajeBateria;
+    }
 
-    public List<String> getInstrucciones() { return instrucciones; }
-    public void setInstrucciones(List<String> i) { this.instrucciones = i; }
+    public String getMensajeApi() {
+        return mensajeApi;
+    }
+
+    public void setMensajeApi(String mensajeApi) {
+        this.mensajeApi = mensajeApi;
+    }
+
+    public String getTitulo() {
+        return titulo;
+    }
+
+    public void setTitulo(String titulo) {
+        this.titulo = titulo;
+    }
+
+    public String getMensajeParte1() {
+        return mensajeParte1;
+    }
+
+    public void setMensajeParte1(String mensajeParte1) {
+        this.mensajeParte1 = mensajeParte1;
+    }
+
+    public String getMensajeResaltado() {
+        return mensajeResaltado;
+    }
+
+    public void setMensajeResaltado(String mensajeResaltado) {
+        this.mensajeResaltado = mensajeResaltado;
+    }
+
+    public String getMensajeParte2() {
+        return mensajeParte2;
+    }
+
+    public void setMensajeParte2(String mensajeParte2) {
+        this.mensajeParte2 = mensajeParte2;
+    }
+
+    public List<String> getInstrucciones() {
+        return instrucciones;
+    }
+
+    public void setInstrucciones(List<String> instrucciones) {
+        this.instrucciones = instrucciones;
+    }
 }

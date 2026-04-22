@@ -35,11 +35,11 @@ public class Patient {
     @OneToOne(mappedBy = "patient", cascade = CascadeType.ALL)
     private Device device;
 
-    // Campos para el Smartwatch
+    // Campos para la integración con el Smartwatch
     private String watchId;
     private String watchModel;
     private Integer watchBattery;
-    private LocalDateTime watchUltimaSinc; // Renombrado para coincidir con el controlador
+    private LocalDateTime watchUltimaSinc;
 
     // --- Constructores ---
     public Patient() {
@@ -119,7 +119,6 @@ public class Patient {
         this.device = device;
     }
 
-    // --- NUEVAS IMPLEMENTACIONES PARA EL RELOJ ---
     public String getWatchId() {
         return watchId;
     }
