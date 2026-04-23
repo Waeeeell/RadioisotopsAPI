@@ -50,13 +50,13 @@ public class WatchController {
                 ? patient.getWatchBattery() : 72;
 
         // ── MENSAJES ──────────────────────────────────────────────────────────
-        // HomeScreen: frase corta de fase (máx. 2 líneas)
+        // HomeScreen: Mensaje corto, estático y general
         String mensajeHome = generarMensajeHome(actividadActual);
 
-        // ActivityScreen: instrucciones específicas que rotan (distintas de Home)
+        // ActivityScreen: Instrucciones específicas y detalladas que rotan
         List<String> instrucciones = generarInstruccionesFase(actividadActual);
 
-        // Mensaje del médico → primera posición en la rotación
+        // Mensaje del médico
         List<Notification> notifsMedico = notificationRepository.findByPatientDniAndLeidaFalse(cip);
         if (!notifsMedico.isEmpty()) {
             String rawMedico = notifsMedico.get(0).getMensaje()
@@ -83,7 +83,7 @@ public class WatchController {
         dto.setMensajeApi(mensajeHome);
         dto.setInstrucciones(instrucciones);
 
-        // Campos legacy mantenidos por compatibilidad
+        // Legacy
         dto.setTitulo(generarTitulo(diasSuperados, diasTotales));
         dto.setMensajeParte1(generarMensajeParte1(actividadActual));
         dto.setMensajeResaltado(generarMensajeResaltado(actividadActual));
@@ -112,53 +112,44 @@ public class WatchController {
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     /**
-     * HomeScreen: frase corta (máx. 2 líneas) — describe la fase general.
+     * HomeScreen: Frase general de la etapa. NUNCA se mostrarán los consejos detallados aquí.
      */
     private String generarMensajeHome(double actividad) {
         if (actividad > 400) return "Aislamiento total.\nEvita todo contacto.";
-        if (actividad > 2)   return "Quédate en casa.\nMantén las precauciones.";
-        if (actividad > 0)   return "Exención completada.\nNormaliza tus relaciones.";
-        return "Aislamiento completado.\n¡Vida normal!";
+        if (actividad > 1)   return "La radiactividad baja.\nMantén precauciones.";
+        return "Exención completada.\n¡Vida normal!";
     }
 
     /**
-     * ActivityScreen: instrucciones detalladas que rotan, distintas del mensaje Home.
-     *
-     * Criterios clínicos:
-     *   Dosi administrada → 400 MBq  : instrucciones de aislamiento estricto
-     *   400 MBq → 2 MBq              : radioactividad disminuyendo + precauciones básicas
-     *   1 MBq → 0 MBq (exención)     : normalización social
+     * ActivityScreen: Instrucciones específicas y rigurosas.
      */
     private List<String> generarInstruccionesFase(double actividad) {
         List<String> lista = new ArrayList<>();
 
         if (actividad > 400) {
-            // Fase inicial — aislamiento estricto (dosi administrada → 400 MBq)
-            lista.add("Duerme solo");
-            lista.add("Lava la ropa por separado");
-            lista.add("2 descargas de cisterna");
-            lista.add("Mantén 1m de distancia con adultos");
-            lista.add("Sin contacto con niños");
-            lista.add("Sin contacto con embarazadas");
-            lista.add("Bebe mucha agua");
+            // Fase inicial (Dosi administrada - 400 MBq)
+            lista.add("Dormir sol");
+            lista.add("Rentar roba separada");
+            lista.add("Dos descàrregues de cisterna");
+            lista.add("Distància 1m amb adults");
+            lista.add("No contacte amb infants i embarassades");
+            lista.add("Beu molta aigua");
 
-        } else if (actividad > 2) {
-            // Fase de decaimiento (400 MBq → 2 MBq) — precauciones básicas
-            lista.add("La radioactividad está disminuyendo");
-            lista.add("Mantén las precauciones básicas");
-            lista.add("Duerme solo");
-            lista.add("Lava la ropa por separado");
-            lista.add("2 descargas de cisterna");
-            lista.add("Mantén 1m de distancia con adultos");
-            lista.add("Sin contacto con niños");
-            lista.add("Sin contacto con embarazadas");
-            lista.add("Bebe mucha agua");
+        } else if (actividad > 1) { // Límite inferior 1 MBq
+            // Fase de decaimiento (400 MBq - 1 MBq)
+            lista.add("La radioactivitat està disminuint");
+            lista.add("Mantingues precaucions bàsiques:");
+            lista.add("Dormir sol");
+            lista.add("Rentar roba separada");
+            lista.add("Dos descàrregues de cisterna");
+            lista.add("Distància 1m amb adults");
+            lista.add("No contacte amb infants i embarassades");
+            lista.add("Beu molta aigua");
 
         } else {
-            // Fase final — exención (1 MBq → 0 MBq)
-            lista.add("Exención concedida");
-            lista.add("Normaliza tus relaciones sociales");
-            lista.add("¡Vida normal!");
+            // Fase final — exención (1 MBq - 0 MBq)
+            lista.add("Exempció");
+            lista.add("Normalitza les relacions socials");
         }
 
         return lista;
@@ -193,19 +184,19 @@ public class WatchController {
 
     private String generarMensajeParte1(double actividad) {
         if (actividad > 400) return "Debes permanecer en ";
-        if (actividad > 2)   return "Puedes moverte por ";
+        if (actividad > 1)   return "Puedes moverte por ";
         return "Puedes salir a ";
     }
 
     private String generarMensajeResaltado(double actividad) {
         if (actividad > 400) return "aislamiento total";
-        if (actividad > 2)   return "casa con precaución";
+        if (actividad > 1)   return "casa con precaución";
         return "dar un paseo";
     }
 
     private String generarMensajeParte2(double actividad) {
         if (actividad > 400) return ".\nSin visitas ni salidas.";
-        if (actividad > 2)   return ".\nEvita salir al exterior.";
+        if (actividad > 1)   return ".\nEvita salir al exterior.";
         return ",\n¡solo 15 minutos!";
     }
 }
