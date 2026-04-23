@@ -12,8 +12,10 @@ import radioisotops.api.com.example.demo.repository.UserRepository;
 import radioisotops.api.com.example.demo.security.JwtUtil;
 import radioisotops.api.com.example.demo.service.EmailService;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.Optional;
 
 @RestController
@@ -117,8 +119,31 @@ public class AuthController {
     }
 
     @GetMapping("/doctores")
-    public ResponseEntity<List<User>> listarDoctores() {
-        return ResponseEntity.ok(userRepository.findByRol("MEDICO"));
+    public ResponseEntity<?> listarDoctores() {
+        List<User> doctores = userRepository.findByRol("MEDICO");
+
+        // Convertimos a una lista de mapas para evitar la recursividad infinita del JSON
+        List<Map<String, Object>> respuesta = doctores.stream().map(u -> {
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", u.getId());
+            m.put("nombreCompleto", u.getNombreCompleto());
+            m.put("email", u.getEmail());
+            m.put("estado", u.getEstado());
+            m.put("hospitalRef", u.getHospitalRef());
+            m.put("profilePicUrl", u.getProfilePicUrl());
+
+            // Extraemos info del doctor si existe
+            if (u.getDoctor() != null) {
+                Map<String, String> infoDoc = new HashMap<>();
+                infoDoc.put("especialidad", u.getDoctor().getEspecialidad());
+                infoDoc.put("colegiadoNum", u.getDoctor().getColegiadoNum());
+                m.put("doctor", infoDoc);
+            }
+
+            return m;
+        }).collect(java.util.stream.Collectors.toList());
+
+        return ResponseEntity.ok(respuesta);
     }
 
     @PostMapping("/doctor/{id}/status")
