@@ -105,4 +105,14 @@ public class NotificationController {
             return ResponseEntity.ok(Map.of("message", "Instrucció enviada"));
         }).orElse(ResponseEntity.notFound().build());
     }
+
+    @GetMapping("/count-today")
+    public ResponseEntity<?> obtenerConteoAlertasHoy() {
+        try {
+            long conteo = notificationRepository.countByFechaEnvioAfter(LocalDate.now().atStartOfDay());
+            return ResponseEntity.ok(Map.of("todayCount", conteo));
+        } catch (Exception e) {
+            return ResponseEntity.ok(Map.of("todayCount", 0)); // Devolvemos 0 si falla para no romper el front
+        }
+    }
 }

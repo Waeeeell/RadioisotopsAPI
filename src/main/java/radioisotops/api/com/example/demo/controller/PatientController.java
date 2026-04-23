@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import radioisotops.api.com.example.demo.dto.WatchEstadoDTO;
 import radioisotops.api.com.example.demo.model.*;
 import radioisotops.api.com.example.demo.repository.*;
 import radioisotops.api.com.example.demo.service.EmailService;
@@ -52,6 +53,9 @@ public class PatientController {
     @Autowired
     private EmailService emailService;
 
+    /**
+     * REGISTRO INTEGRAL DE PACIENTE Y TRATAMIENTO
+     */
     @PostMapping("/register-full")
     @Transactional
     public ResponseEntity<?> registrarAltaCompleta(@RequestBody Map<String, Object> payload, HttpServletRequest request) {
@@ -136,6 +140,9 @@ public class PatientController {
         }
     }
 
+    /**
+     * OBTENER PERFIL DETALLADO PARA LA WEB
+     */
     @GetMapping("/perfil/{cip}")
     public ResponseEntity<?> obtenerPerfilPaciente(@PathVariable String cip) {
         try {
@@ -145,11 +152,11 @@ public class PatientController {
                 dto.put("cip", p.getDni());
                 dto.put("valorEmocional", p.getValorEmocional());
 
-                // DATOS DEL RELOJ (Protección contra nulos para evitar N/A en React)
+                // Datos dinámicos del reloj con protección contra nulos
                 dto.put("watchId", p.getWatchId());
                 dto.put("watchBattery", p.getWatchBattery() != null ? p.getWatchBattery() : 0);
                 dto.put("watchUltimaSinc", p.getWatchUltimaSinc());
-                dto.put("watchModel", p.getWatchModel() != null ? p.getWatchModel() : "Galaxy Watch");
+                dto.put("watchModel", p.getWatchModel() != null ? p.getWatchModel() : "Galaxy Watch 8");
 
                 Treatment t = treatmentRepository.findFirstByPatientOrderByFechaInicioDesc(p);
                 if (t != null && t.getRadioisotopo() != null) {
@@ -157,7 +164,7 @@ public class PatientController {
                     double activitatActual = calcularActivitatActual(t.getRadioisotopo(), dosiInicial, t.getFechaInicio());
 
                     dto.put("tratamiento", t.getRadioisotopo() + " (" + String.format("%.2f", activitatActual) + " MBq)");
-                    double progress = (dosiInicial > 0) ? (activitatActual / dosiInicial) * 100 : 0;
+                    double progress = (dosiInicial > 0) ? (1 - (activitatActual / dosiInicial)) * 100 : 0;
                     dto.put("progreso", (int) Math.round(progress));
 
                     if (activitatActual > 400) { dto.put("color", "red"); dto.put("estado", "Fase Inicial"); }
@@ -176,6 +183,27 @@ public class PatientController {
         }
     }
 
+    /**
+     * RECEPTOR DE TELEMETRÍA DESDE EL RELOJ (POST)
+     */
+    @PostMapping("/{cip}/actualizar-telemetria")
+    @Transactional
+    public ResponseEntity<?> actualizarTelemetriaDesdeReloj(@PathVariable String cip, @RequestBody WatchEstadoDTO datosReloj) {
+        return patientRepository.findByDni(cip).map(p -> {
+            p.setWatchBattery(datosReloj.getPorcentajeBateria());
+            p.setWatchUltimaSinc(LocalDateTime.now());
+            patientRepository.save(p);
+
+            deviceRepository.findByPatientDni(cip).ifPresent(device -> {
+                device.setEstado("Activo");
+                device.setUltimaConexion(LocalDateTime.now());
+                deviceRepository.save(device);
+            });
+
+            return ResponseEntity.ok(Map.of("message", "Telemetría actualizada"));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
     @GetMapping("/lista-gestion")
     public ResponseEntity<List<Map<String, Object>>> obtenerPacientesGestion() {
         List<Patient> pacientes = patientRepository.findAll();
@@ -192,16 +220,15 @@ public class PatientController {
                 double dosiInicial = t.getDosis();
                 double activitatActual = calcularActivitatActual(t.getRadioisotopo(), dosiInicial, t.getFechaInicio());
                 dto.put("tratamiento", t.getRadioisotopo());
-                double progress = (dosiInicial > 0) ? (activitatActual / dosiInicial) * 100 : 0;
+                double progress = (dosiInicial > 0) ? (1 - (activitatActual / dosiInicial)) * 100 : 0;
                 dto.put("progreso", (int) Math.round(progress));
-                if (activitatActual > 400) { dto.put("color", "red"); dto.put("estado", "Fase Inicial"); }
-                else if (activitatActual > 1) { dto.put("color", "yellow"); dto.put("estado", "Fase de Decaimiento"); }
-                else { dto.put("color", "green"); dto.put("estado", "Sin riesgo"); }
+                if (activitatActual > 400) { dto.put("color", "red"); }
+                else if (activitatActual > 1) { dto.put("color", "yellow"); }
+                else { dto.put("color", "green"); }
             } else {
                 dto.put("tratamiento", "Sin tratamiento");
                 dto.put("progreso", 0);
                 dto.put("color", "gray");
-                dto.put("estado", "PENDIENTE");
             }
             return dto;
         }).collect(Collectors.toList()));
@@ -272,15 +299,16 @@ public class PatientController {
     }
 
     @PostMapping("/{cip}/register-view")
+    @Transactional
     public ResponseEntity<?> registrarVisita(@PathVariable String cip, HttpServletRequest request) {
         try {
             String email = (String) request.getAttribute("userEmail");
-            if (email == null) return ResponseEntity.status(401).body("Sesión inválida");
+            if (email == null) return ResponseEntity.ok("No auth");
 
             User docUser = userRepository.findByEmail(email).orElse(null);
             Patient p = patientRepository.findByDni(cip).orElse(null);
 
-            if (docUser != null && p != null && docUser.getDoctor() != null) {
+            if (docUser != null && docUser.getDoctor() != null && p != null) {
                 UserActivity actividad = activityRepository
                         .findByDoctorIdAndPatientId(docUser.getDoctor().getId(), p.getId())
                         .orElse(new UserActivity());
@@ -292,10 +320,9 @@ public class PatientController {
                 activityRepository.save(actividad);
                 return ResponseEntity.ok().build();
             }
-            return ResponseEntity.badRequest().body("Médico o paciente no encontrado");
+            return ResponseEntity.ok("No registrado: usuario o paciente no validos");
         } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(500).body("Error en visita: " + e.getMessage());
+            return ResponseEntity.ok("Error controlado en visita");
         }
     }
 

@@ -32,11 +32,11 @@ public class WatchController {
         Treatment t = treatmentRepository.findFirstByPatientOrderByFechaInicioDesc(patient);
         if (t == null) return ResponseEntity.status(404).body("Sin tratamiento activo");
 
-        int diasTotales  = calcularDiasTotalesAislamiento(t.getRadioisotopo());
-        double dosisInicial    = t.getDosis();
+        int diasTotales     = calcularDiasTotalesAislamiento(t.getRadioisotopo());
+        double dosisInicial = t.getDosis();
         double actividadActual = calcularActividadActual(t.getRadioisotopo(), dosisInicial, t.getFechaInicio());
 
-        // Progreso — mismo criterio que la web
+        // Progreso
         double pct = (dosisInicial > 0)
                 ? Math.max(0.0, Math.min(1.0, 1.0 - (actividadActual / dosisInicial)))
                 : 0.0;
@@ -49,37 +49,33 @@ public class WatchController {
         int bateria = (patient.getWatchBattery() != null && patient.getWatchBattery() > 0)
                 ? patient.getWatchBattery() : 72;
 
-        // ── MENSAJES ─────────────────────────────────────────────────────────
+        // ── MENSAJES ──────────────────────────────────────────────────────────
         // HomeScreen: frase corta de fase (máx. 2 líneas)
         String mensajeHome = generarMensajeHome(actividadActual);
 
-        // ActivityScreen: instrucciones específicas que rotan
+        // ActivityScreen: instrucciones específicas que rotan (distintas de Home)
         List<String> instrucciones = generarInstruccionesFase(actividadActual);
 
-        // Mensaje del médico → primera posición en la rotación + reemplaza HomeScreen
+        // Mensaje del médico → primera posición en la rotación
         List<Notification> notifsMedico = notificationRepository.findByPatientDniAndLeidaFalse(cip);
         if (!notifsMedico.isEmpty()) {
             String rawMedico = notifsMedico.get(0).getMensaje()
                     .replace("CONSEJO MÉDICO: ", "").trim();
 
-            // Cada coma o punto = una instrucción independiente
             List<String> instrMedico = new ArrayList<>();
             for (String parte : rawMedico.split("[,.]")) {
                 String limpio = parte.trim();
                 if (!limpio.isEmpty()) instrMedico.add(limpio);
             }
 
-            // El primer fragmento del médico va en HomeScreen
             if (!instrMedico.isEmpty()) mensajeHome = instrMedico.get(0);
 
-            // El resto se añade al principio de la rotación de Activity
             instrMedico.addAll(instrucciones);
             instrucciones = instrMedico;
         }
 
         // ── DTO ───────────────────────────────────────────────────────────────
         WatchEstadoDTO dto = new WatchEstadoDTO();
-        // ✅ Sin swap: los nombres del DTO coinciden con lo que representan
         dto.setDiasSuperados(diasSuperados);
         dto.setDiasRestantes(diasRestantes);
         dto.setDiaActual(diaActual);
@@ -116,44 +112,52 @@ public class WatchController {
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     /**
-     * HomeScreen: frase corta, máx. 2 líneas, describe la fase general.
+     * HomeScreen: frase corta (máx. 2 líneas) — describe la fase general.
      */
     private String generarMensajeHome(double actividad) {
         if (actividad > 400) return "Aislamiento total.\nEvita todo contacto.";
-        if (actividad > 100) return "Quédate en casa.\nPrecaución al moverte.";
-        if (actividad > 1)   return "Puedes salir 15 min.\nSigue las precauciones.";
+        if (actividad > 2)   return "Quédate en casa.\nMantén las precauciones.";
+        if (actividad > 0)   return "Exención completada.\nNormaliza tus relaciones.";
         return "Aislamiento completado.\n¡Vida normal!";
     }
 
     /**
-     * ActivityScreen: cada elemento = una instrucción que rota.
-     * Basado en los umbrales de la hoja de cálculo clínica.
+     * ActivityScreen: instrucciones detalladas que rotan, distintas del mensaje Home.
+     *
+     * Criterios clínicos:
+     *   Dosi administrada → 400 MBq  : instrucciones de aislamiento estricto
+     *   400 MBq → 2 MBq              : radioactividad disminuyendo + precauciones básicas
+     *   1 MBq → 0 MBq (exención)     : normalización social
      */
     private List<String> generarInstruccionesFase(double actividad) {
         List<String> lista = new ArrayList<>();
 
         if (actividad > 400) {
-            // Fase inicial — máximo riesgo (>400 MBq)
+            // Fase inicial — aislamiento estricto (dosi administrada → 400 MBq)
             lista.add("Duerme solo");
-            lista.add("Ropa lavada por separado");
+            lista.add("Lava la ropa por separado");
             lista.add("2 descargas de cisterna");
-            lista.add("Distancia 1m con adultos");
+            lista.add("Mantén 1m de distancia con adultos");
             lista.add("Sin contacto con niños");
             lista.add("Sin contacto con embarazadas");
             lista.add("Bebe mucha agua");
-        } else if (actividad > 1) {
-            // Fase de decaimiento (400–1 MBq)
-            lista.add("Radioactividad disminuyendo");
+
+        } else if (actividad > 2) {
+            // Fase de decaimiento (400 MBq → 2 MBq) — precauciones básicas
+            lista.add("La radioactividad está disminuyendo");
+            lista.add("Mantén las precauciones básicas");
             lista.add("Duerme solo");
-            lista.add("Ropa lavada por separado");
-            lista.add("Distancia 1m con adultos");
+            lista.add("Lava la ropa por separado");
+            lista.add("2 descargas de cisterna");
+            lista.add("Mantén 1m de distancia con adultos");
             lista.add("Sin contacto con niños");
             lista.add("Sin contacto con embarazadas");
             lista.add("Bebe mucha agua");
+
         } else {
-            // Fase final — sin riesgo (<1 MBq)
-            lista.add("Aislamiento completado");
-            lista.add("Normaliza tus relaciones");
+            // Fase final — exención (1 MBq → 0 MBq)
+            lista.add("Exención concedida");
+            lista.add("Normaliza tus relaciones sociales");
             lista.add("¡Vida normal!");
         }
 
@@ -182,26 +186,26 @@ public class WatchController {
     }
 
     private String generarTitulo(int diasSuperados, int diasTotales) {
-        if (diasSuperados == 0)                    return "Inicio del tratamiento";
-        if (diasSuperados >= diasTotales / 2)      return "¡Ya vas por la mitad!";
+        if (diasSuperados == 0)               return "Inicio del tratamiento";
+        if (diasSuperados >= diasTotales / 2) return "¡Ya vas por la mitad!";
         return "Vas por el día " + (diasSuperados + 1);
     }
 
     private String generarMensajeParte1(double actividad) {
         if (actividad > 400) return "Debes permanecer en ";
-        if (actividad > 100) return "Puedes moverte por ";
+        if (actividad > 2)   return "Puedes moverte por ";
         return "Puedes salir a ";
     }
 
     private String generarMensajeResaltado(double actividad) {
         if (actividad > 400) return "aislamiento total";
-        if (actividad > 100) return "casa con precaución";
+        if (actividad > 2)   return "casa con precaución";
         return "dar un paseo";
     }
 
     private String generarMensajeParte2(double actividad) {
         if (actividad > 400) return ".\nSin visitas ni salidas.";
-        if (actividad > 100) return ".\nEvita salir al exterior.";
+        if (actividad > 2)   return ".\nEvita salir al exterior.";
         return ",\n¡solo 15 minutos!";
     }
 }
