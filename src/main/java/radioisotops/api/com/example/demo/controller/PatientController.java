@@ -52,10 +52,6 @@ public class PatientController {
     @Autowired
     private EmailService emailService;
 
-    /**
-     * REGISTRO INTEGRAL DE PACIENTE Y TRATAMIENTO
-     * Modificado para persistir el watchId del Bluetooth.
-     */
     @PostMapping("/register-full")
     @Transactional
     public ResponseEntity<?> registrarAltaCompleta(@RequestBody Map<String, Object> payload, HttpServletRequest request) {
@@ -78,7 +74,6 @@ public class PatientController {
                 return ResponseEntity.badRequest().body(Map.of("error", "El CIP es obligatorio."));
             }
 
-            // 1. Crear Usuario
             User userPaciente = new User();
             userPaciente.setNombreCompleto((String) datosPaciente.get("nombreCompleto"));
             userPaciente.setEmail(cip.toLowerCase() + "@catsalut.cat");
@@ -91,13 +86,11 @@ public class PatientController {
             userPaciente.setHospitalRef((String) datosPaciente.get("hospitalReferencia"));
             User userGuardado = userRepository.save(userPaciente);
 
-            // 2. Crear Perfil de Paciente
             Patient patient = new Patient();
             patient.setUser(userGuardado);
             patient.setDni(cip);
             patient.setNumSs(cip);
 
-            // MODIFICACIÓN: Guardar el watchId que viene del payload
             if (datosPaciente.containsKey("watchId")) {
                 patient.setWatchId((String) datosPaciente.get("watchId"));
             }
@@ -110,7 +103,6 @@ public class PatientController {
             patient.setDoctorAsignado(doc);
             Patient patientGuardado = patientRepository.save(patient);
 
-            // 3. Crear Tratamiento Inicial
             Treatment treatment = new Treatment();
             treatment.setRadioisotopo((String) datosTratamiento.get("radioisotopo"));
 
@@ -133,7 +125,7 @@ public class PatientController {
             treatmentRepository.save(treatment);
 
             return ResponseEntity.ok(Map.of(
-                    "message", "Alta procesada con éxito por el Dr/a. " + usuarioMedico.getNombreCompleto(),
+                    "message", "Alta procesada con éxito",
                     "accesoEmail", userPaciente.getEmail(),
                     "accesoPasswordTemporal", passTemporal,
                     "requiereCambio", true
@@ -144,45 +136,44 @@ public class PatientController {
         }
     }
 
-    /**
-     * NUEVO: Obtener detalle completo del paciente para la página de perfil
-     * Incluye datos dinámicos del reloj y estado del tratamiento.
-     */
     @GetMapping("/perfil/{cip}")
     public ResponseEntity<?> obtenerPerfilPaciente(@PathVariable String cip) {
-        return patientRepository.findByDni(cip).map(p -> {
-            Map<String, Object> dto = new HashMap<>();
-            dto.put("nombre", p.getUser().getNombreCompleto());
-            dto.put("cip", p.getDni());
-            dto.put("valorEmocional", p.getValorEmocional());
+        try {
+            return patientRepository.findByDni(cip).map(p -> {
+                Map<String, Object> dto = new HashMap<>();
+                dto.put("nombre", p.getUser().getNombreCompleto());
+                dto.put("cip", p.getDni());
+                dto.put("valorEmocional", p.getValorEmocional());
 
-            // Datos del Smartwatch
-            dto.put("watchId", p.getWatchId());
-            dto.put("watchBattery", p.getWatchBattery());
-            dto.put("watchUltimaSinc", p.getWatchUltimaSinc());
-            dto.put("watchModel", p.getWatchModel() != null ? p.getWatchModel() : "Galaxy Watch");
+                // DATOS DEL RELOJ (Protección contra nulos para evitar N/A en React)
+                dto.put("watchId", p.getWatchId());
+                dto.put("watchBattery", p.getWatchBattery() != null ? p.getWatchBattery() : 0);
+                dto.put("watchUltimaSinc", p.getWatchUltimaSinc());
+                dto.put("watchModel", p.getWatchModel() != null ? p.getWatchModel() : "Galaxy Watch");
 
-            // Datos del Tratamiento y Progreso
-            Treatment t = treatmentRepository.findFirstByPatientOrderByFechaInicioDesc(p);
-            if (t != null && t.getRadioisotopo() != null) {
-                double dosiInicial = t.getDosis();
-                double activitatActual = calcularActivitatActual(t.getRadioisotopo(), dosiInicial, t.getFechaInicio());
+                Treatment t = treatmentRepository.findFirstByPatientOrderByFechaInicioDesc(p);
+                if (t != null && t.getRadioisotopo() != null) {
+                    double dosiInicial = t.getDosis();
+                    double activitatActual = calcularActivitatActual(t.getRadioisotopo(), dosiInicial, t.getFechaInicio());
 
-                dto.put("tratamiento", t.getRadioisotopo() + " (" + String.format("%.2f", activitatActual) + " MBq)");
-                double progress = (dosiInicial > 0) ? (activitatActual / dosiInicial) * 100 : 0;
-                dto.put("progreso", (int) Math.round(progress));
+                    dto.put("tratamiento", t.getRadioisotopo() + " (" + String.format("%.2f", activitatActual) + " MBq)");
+                    double progress = (dosiInicial > 0) ? (activitatActual / dosiInicial) * 100 : 0;
+                    dto.put("progreso", (int) Math.round(progress));
 
-                if (activitatActual > 400) { dto.put("color", "red"); dto.put("estado", "Fase Inicial"); }
-                else if (activitatActual > 1) { dto.put("color", "yellow"); dto.put("estado", "Fase de Decaimiento"); }
-                else { dto.put("color", "green"); dto.put("estado", "Sin riesgo"); }
-            } else {
-                dto.put("tratamiento", "Sin tratamiento");
-                dto.put("progreso", 0);
-                dto.put("color", "gray");
-                dto.put("estado", "PENDIENTE");
-            }
-            return ResponseEntity.ok(dto);
-        }).orElse(ResponseEntity.notFound().build());
+                    if (activitatActual > 400) { dto.put("color", "red"); dto.put("estado", "Fase Inicial"); }
+                    else if (activitatActual > 1) { dto.put("color", "yellow"); dto.put("estado", "Fase de Decaimiento"); }
+                    else { dto.put("color", "green"); dto.put("estado", "Sin riesgo"); }
+                } else {
+                    dto.put("tratamiento", "Sin tratamiento");
+                    dto.put("progreso", 0);
+                    dto.put("color", "gray");
+                    dto.put("estado", "PENDIENTE");
+                }
+                return ResponseEntity.ok(dto);
+            }).orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", "Error cargando perfil: " + e.getMessage()));
+        }
     }
 
     @GetMapping("/lista-gestion")
@@ -194,15 +185,13 @@ public class PatientController {
             dto.put("nombre", p.getUser() != null ? p.getUser().getNombreCompleto() : "Desconocido");
             dto.put("cip", p.getDni());
             dto.put("valorEmocional", p.getValorEmocional());
-
-            // Usamos watchId para determinar el estado en la lista
             dto.put("watchEstado", p.getWatchId() != null ? "Activo" : "No vinculado");
 
             Treatment t = treatmentRepository.findFirstByPatientOrderByFechaInicioDesc(p);
             if (t != null && t.getRadioisotopo() != null) {
                 double dosiInicial = t.getDosis();
                 double activitatActual = calcularActivitatActual(t.getRadioisotopo(), dosiInicial, t.getFechaInicio());
-                dto.put("tratamiento", t.getRadioisotopo() + " (" + String.format("%.2f", activitatActual) + " MBq)");
+                dto.put("tratamiento", t.getRadioisotopo());
                 double progress = (dosiInicial > 0) ? (activitatActual / dosiInicial) * 100 : 0;
                 dto.put("progreso", (int) Math.round(progress));
                 if (activitatActual > 400) { dto.put("color", "red"); dto.put("estado", "Fase Inicial"); }
@@ -284,20 +273,30 @@ public class PatientController {
 
     @PostMapping("/{cip}/register-view")
     public ResponseEntity<?> registrarVisita(@PathVariable String cip, HttpServletRequest request) {
-        String email = (String) request.getAttribute("userEmail");
-        User docUser = userRepository.findByEmail(email).orElse(null);
-        Patient p = patientRepository.findByDni(cip).orElse(null);
-        if (docUser != null && p != null) {
-            UserActivity actividad = activityRepository
-                    .findByDoctorIdAndPatientId(docUser.getDoctor().getId(), p.getId())
-                    .orElse(new UserActivity());
-            actividad.setDoctor(docUser.getDoctor());
-            actividad.setPatient(p);
-            actividad.setDescripcion("Última revisión del perfil");
-            actividad.setFechaAccion(LocalDateTime.now());
-            activityRepository.save(actividad);
+        try {
+            String email = (String) request.getAttribute("userEmail");
+            if (email == null) return ResponseEntity.status(401).body("Sesión inválida");
+
+            User docUser = userRepository.findByEmail(email).orElse(null);
+            Patient p = patientRepository.findByDni(cip).orElse(null);
+
+            if (docUser != null && p != null && docUser.getDoctor() != null) {
+                UserActivity actividad = activityRepository
+                        .findByDoctorIdAndPatientId(docUser.getDoctor().getId(), p.getId())
+                        .orElse(new UserActivity());
+
+                actividad.setDoctor(docUser.getDoctor());
+                actividad.setPatient(p);
+                actividad.setDescripcion("Última revisión del perfil");
+                actividad.setFechaAccion(LocalDateTime.now());
+                activityRepository.save(actividad);
+                return ResponseEntity.ok().build();
+            }
+            return ResponseEntity.badRequest().body("Médico o paciente no encontrado");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Error en visita: " + e.getMessage());
         }
-        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/recent-patients")
