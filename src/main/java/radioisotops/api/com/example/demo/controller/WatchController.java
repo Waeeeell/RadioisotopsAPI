@@ -21,6 +21,7 @@ public class WatchController {
     @Autowired private PatientRepository patientRepository;
     @Autowired private TreatmentRepository treatmentRepository;
     @Autowired private DeviceRepository deviceRepository;
+    // Ya no es estrictamente necesario el NotificationRepository aquí para la UI del paciente
     @Autowired private NotificationRepository notificationRepository;
 
     @GetMapping("/estado/{cip}")
@@ -49,30 +50,16 @@ public class WatchController {
         int bateria = (patient.getWatchBattery() != null && patient.getWatchBattery() > 0)
                 ? patient.getWatchBattery() : 72;
 
-        // ── MENSAJES ──────────────────────────────────────────────────────────
-        // HomeScreen: Mensaje corto, estático y general
+        // ── MENSAJES ESTRICTAMENTE CLÍNICOS ───────────────────────────────────
+
+        // HomeScreen: Frase general de la etapa.
         String mensajeHome = generarMensajeHome(actividadActual);
 
-        // ActivityScreen: Instrucciones específicas y detalladas que rotan
+        // ActivityScreen: Instrucciones específicas y rigurosas que rotan.
         List<String> instrucciones = generarInstruccionesFase(actividadActual);
 
-        // Mensaje del médico
-        List<Notification> notifsMedico = notificationRepository.findByPatientDniAndLeidaFalse(cip);
-        if (!notifsMedico.isEmpty()) {
-            String rawMedico = notifsMedico.get(0).getMensaje()
-                    .replace("CONSEJO MÉDICO: ", "").trim();
-
-            List<String> instrMedico = new ArrayList<>();
-            for (String parte : rawMedico.split("[,.]")) {
-                String limpio = parte.trim();
-                if (!limpio.isEmpty()) instrMedico.add(limpio);
-            }
-
-            if (!instrMedico.isEmpty()) mensajeHome = instrMedico.get(0);
-
-            instrMedico.addAll(instrucciones);
-            instrucciones = instrMedico;
-        }
+        // *ELIMINADO*: El bloque que inyectaba notificaciones del médico se ha borrado
+        // para evitar que se crucen alertas del panel web en el reloj del paciente.
 
         // ── DTO ───────────────────────────────────────────────────────────────
         WatchEstadoDTO dto = new WatchEstadoDTO();
@@ -83,7 +70,7 @@ public class WatchController {
         dto.setMensajeApi(mensajeHome);
         dto.setInstrucciones(instrucciones);
 
-        // Legacy
+        // Legacy (por si se usa en otra vista)
         dto.setTitulo(generarTitulo(diasSuperados, diasTotales));
         dto.setMensajeParte1(generarMensajeParte1(actividadActual));
         dto.setMensajeResaltado(generarMensajeResaltado(actividadActual));

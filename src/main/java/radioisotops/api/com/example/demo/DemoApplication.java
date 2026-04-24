@@ -25,26 +25,6 @@ public class DemoApplication {
     @Bean
     CommandLineRunner initDatabase(UserRepository userRepository, DoctorRepository doctorRepository) {
         return args -> {
-            if (userRepository.findByEmail("kurophan@hospital.com").isEmpty()) {
-                User medico = new User();
-                medico.setNombreCompleto("Kuronami Phantom");
-                medico.setEmail("kurophan@hospital.com");
-                medico.setPassword("1234!");
-                medico.setRol("MEDICO");
-                medico.setEstado("ACTIVO");
-                medico.setHospitalRef("Hospital Central");
-                medico.setFechaRegistro(LocalDateTime.now());
-                userRepository.save(medico);
-
-                Doctor datosDoctor = new Doctor();
-                datosDoctor.setEspecialidad("Oncología Radioterápica");
-                datosDoctor.setColegiadoNum("COL-123457");
-                datosDoctor.setUser(medico);
-                doctorRepository.save(datosDoctor);
-                
-                System.out.println("✅ Médico 'Kuronami' creado con éxito.");
-            }
-
             if (userRepository.findByEmail("admin@hospital.com").isEmpty()) {
                 User admin = new User();
                 admin.setNombreCompleto("Admin General");
