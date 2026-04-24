@@ -149,6 +149,10 @@ public class PatientController {
      * NUEVO: Obtener detalle completo del paciente para la página de perfil
      * Incluye datos dinámicos del reloj y estado del tratamiento.
      */
+    /**
+     * NUEVO: Obtener detalle completo del paciente para la página de perfil
+     * Incluye datos dinámicos del reloj y estado del tratamiento.
+     */
     @GetMapping("/perfil/{cip}")
     public ResponseEntity<?> obtenerPerfilPaciente(@PathVariable String cip) {
         return patientRepository.findByDni(cip).map(p -> {
@@ -157,21 +161,24 @@ public class PatientController {
             dto.put("cip", p.getDni());
             dto.put("valorEmocional", p.getValorEmocional());
 
-            // Datos del Smartwatch (CORREGIDO NULL SAFETY)
+            // Datos del Smartwatch
             dto.put("watchId", p.getWatchId());
             dto.put("watchBattery", p.getWatchBattery() != null ? p.getWatchBattery() : 0);
             dto.put("watchUltimaSinc", p.getWatchUltimaSinc());
             dto.put("watchModel", p.getWatchModel() != null ? p.getWatchModel() : "Galaxy Watch");
 
-            // Datos del Tratamiento y Progreso
+            // Datos del Tratamiento y Progreso (INVERTIDO)
             Treatment t = treatmentRepository.findFirstByPatientOrderByFechaInicioDesc(p);
             if (t != null && t.getRadioisotopo() != null) {
                 double dosiInicial = t.getDosis();
                 double activitatActual = calcularActivitatActual(t.getRadioisotopo(), dosiInicial, t.getFechaInicio());
 
                 dto.put("tratamiento", t.getRadioisotopo() + " (" + String.format("%.2f", activitatActual) + " MBq)");
-                double progress = (dosiInicial > 0) ? (activitatActual / dosiInicial) * 100 : 0;
-                dto.put("progreso", (int) Math.round(progress));
+
+                // --- NUEVA LÓGICA DE PROGRESO ---
+                double porcentajeRestante = (dosiInicial > 0) ? (activitatActual / dosiInicial) * 100 : 0;
+                int progreso = (int) Math.round(100 - porcentajeRestante);
+                dto.put("progreso", Math.max(0, Math.min(100, progreso))); // Asegura que esté entre 0 y 100
 
                 if (activitatActual > 400) { dto.put("color", "red"); dto.put("estado", "Fase Inicial"); }
                 else if (activitatActual > 1) { dto.put("color", "yellow"); dto.put("estado", "Fase de Decaimiento"); }
@@ -196,7 +203,6 @@ public class PatientController {
             dto.put("cip", p.getDni());
             dto.put("valorEmocional", p.getValorEmocional());
 
-            // Usamos watchId para determinar el estado en la lista
             dto.put("watchEstado", p.getWatchId() != null ? "Activo" : "No vinculado");
 
             Treatment t = treatmentRepository.findFirstByPatientOrderByFechaInicioDesc(p);
@@ -204,11 +210,13 @@ public class PatientController {
                 double dosiInicial = t.getDosis();
                 double activitatActual = calcularActivitatActual(t.getRadioisotopo(), dosiInicial, t.getFechaInicio());
 
-                // ESTA ES LA LÍNEA QUE MANTIENE TUS MBQ VISIBLES
                 dto.put("tratamiento", t.getRadioisotopo() + " (" + String.format("%.2f", activitatActual) + " MBq)");
 
-                double progress = (dosiInicial > 0) ? (activitatActual / dosiInicial) * 100 : 0;
-                dto.put("progreso", (int) Math.round(progress));
+                // --- NUEVA LÓGICA DE PROGRESO ---
+                double porcentajeRestante = (dosiInicial > 0) ? (activitatActual / dosiInicial) * 100 : 0;
+                int progreso = (int) Math.round(100 - porcentajeRestante);
+                dto.put("progreso", Math.max(0, Math.min(100, progreso))); // Asegura que esté entre 0 y 100
+
                 if (activitatActual > 400) { dto.put("color", "red"); dto.put("estado", "Fase Inicial"); }
                 else if (activitatActual > 1) { dto.put("color", "yellow"); dto.put("estado", "Fase de Decaimiento"); }
                 else { dto.put("color", "green"); dto.put("estado", "Sin riesgo"); }
