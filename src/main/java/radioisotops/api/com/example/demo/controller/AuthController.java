@@ -8,15 +8,17 @@ import radioisotops.api.com.example.demo.dto.LoginRequest;
 import radioisotops.api.com.example.demo.dto.LoginResponseDTO;
 import radioisotops.api.com.example.demo.dto.PreferenciasDTO;
 import radioisotops.api.com.example.demo.model.User;
+import radioisotops.api.com.example.demo.model.Patient; // ✅ AÑADIDO
 import radioisotops.api.com.example.demo.repository.UserRepository;
+import radioisotops.api.com.example.demo.repository.PatientRepository; // ✅ AÑADIDO
 import radioisotops.api.com.example.demo.security.JwtUtil;
 import radioisotops.api.com.example.demo.service.EmailService;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -29,6 +31,9 @@ public class AuthController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private PatientRepository patientRepository;
 
     @Autowired
     private JwtUtil jwtUtil;
@@ -72,13 +77,55 @@ public class AuthController {
                         usuario.getNotifRadiacion(),
                         usuario.getNotifVitales(),
                         usuario.getNotifSincro(),
-                        usuario.getProfilePicUrl() // ✅ NUEVO
+                        usuario.getProfilePicUrl()
                 );
 
                 return ResponseEntity.ok(respuesta);
             }
         }
         return ResponseEntity.status(401).body("Credenciales incorrectas");
+    }
+
+    @PostMapping("/login-watch")
+    public ResponseEntity<?> iniciarSesionConReloj(@RequestBody Map<String, String> payload) {
+        String watchId = payload.get("watchId");
+
+        if (watchId == null || watchId.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "ID de reloj no proporcionado"));
+        }
+
+        Optional<Patient> patientOpt = patientRepository.findByWatchId(watchId);
+
+        if (patientOpt.isPresent()) {
+            User usuario = patientOpt.get().getUser();
+
+            String token = jwtUtil.generateToken(usuario.getEmail());
+            boolean temporal = usuario.getPassword().startsWith("Temp");
+
+            LoginResponseDTO respuesta = new LoginResponseDTO(
+                    usuario.getId(),
+                    usuario.getEmail(),
+                    usuario.getNombreCompleto(),
+                    usuario.getRol(),
+                    null,
+                    null,
+                    token,
+                    temporal,
+                    usuario.getIdioma(),
+                    usuario.getZonaHoraria(),
+                    usuario.getNotifBateria(),
+                    usuario.getNotifDesconexion(),
+                    usuario.getNotifResumen(),
+                    usuario.getNotifRadiacion(),
+                    usuario.getNotifVitales(),
+                    usuario.getNotifSincro(),
+                    usuario.getProfilePicUrl()
+            );
+
+            return ResponseEntity.ok(respuesta);
+        }
+
+        return ResponseEntity.status(401).body(Map.of("error", "Dispositivo no reconocido o no vinculado."));
     }
 
     @GetMapping("/me")
@@ -112,7 +159,7 @@ public class AuthController {
                             user.getNotifRadiacion(),
                             user.getNotifVitales(),
                             user.getNotifSincro(),
-                            user.getProfilePicUrl() // ✅ NUEVO
+                            user.getProfilePicUrl()
                     ));
                 })
                 .orElse(ResponseEntity.status(404).build());
@@ -122,7 +169,6 @@ public class AuthController {
     public ResponseEntity<?> listarDoctores() {
         List<User> doctores = userRepository.findByRol("MEDICO");
 
-        // Convertimos a una lista de mapas para evitar la recursividad infinita del JSON
         List<Map<String, Object>> respuesta = doctores.stream().map(u -> {
             Map<String, Object> m = new HashMap<>();
             m.put("id", u.getId());
@@ -132,7 +178,6 @@ public class AuthController {
             m.put("hospitalRef", u.getHospitalRef());
             m.put("profilePicUrl", u.getProfilePicUrl());
 
-            // Extraemos info del doctor si existe
             if (u.getDoctor() != null) {
                 Map<String, String> infoDoc = new HashMap<>();
                 infoDoc.put("especialidad", u.getDoctor().getEspecialidad());
@@ -141,7 +186,7 @@ public class AuthController {
             }
 
             return m;
-        }).collect(java.util.stream.Collectors.toList());
+        }).collect(Collectors.toList());
 
         return ResponseEntity.ok(respuesta);
     }
