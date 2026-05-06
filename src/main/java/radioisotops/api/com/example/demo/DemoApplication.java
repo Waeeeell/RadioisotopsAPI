@@ -1,3 +1,12 @@
+/*
+================================================================================
+PROJECT:       [RADIOISOTOPO]
+VERSION:       1.0.0
+DESCRIPTION:   [Parte de DemoApplication]
+AUTHOR:        [Marcos, Wael]
+UPDATED:       [06/05/2026]
+================================================================================
+*/
 package radioisotops.api.com.example.demo;
 
 import org.springframework.boot.CommandLineRunner;
@@ -36,10 +45,10 @@ public class DemoApplication {
                 admin.setFechaRegistro(LocalDateTime.now());
                 userRepository.save(admin);
                 
-                System.out.println("✅ Administrador creado con éxito.");
+                System.out.println("Administrador creado con éxito.");
             }
             
-            System.out.println("🚀 Verificación de usuarios iniciales completada.");
+            System.out.println("Verificación de usuarios iniciales completada.");
         };
     }
 }

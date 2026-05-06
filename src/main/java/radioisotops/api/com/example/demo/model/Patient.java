@@ -1,3 +1,12 @@
+/*
+================================================================================
+PROJECT:       [RADIOISOTOPO]
+VERSION:       1.0.0
+DESCRIPTION:   [Parte de Patient]
+AUTHOR:        [Marcos, Wael]
+UPDATED:       [06/05/2026]
+================================================================================
+*/
 package radioisotops.api.com.example.demo.model;
 
 import jakarta.persistence.*;
@@ -35,13 +44,11 @@ public class Patient {
     @OneToOne(mappedBy = "patient", cascade = CascadeType.ALL)
     private Device device;
 
-    // Campos para la integración con el Smartwatch
     private String watchId;
     private String watchModel;
     private Integer watchBattery;
     private LocalDateTime watchUltimaSinc;
 
-    // --- Constructores ---
     public Patient() {
     }
 
@@ -54,7 +61,6 @@ public class Patient {
         this.doctorAsignado = doctorAsignado;
     }
 
-    // --- Getters y Setters ---
     public Long getId() {
         return id;
     }

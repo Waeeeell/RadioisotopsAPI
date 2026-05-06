@@ -1,3 +1,12 @@
+/*
+================================================================================
+PROJECT:       [RADIOISOTOPO]
+VERSION:       1.0.0
+DESCRIPTION:   [Parte de User]
+AUTHOR:        [Marcos, Wael]
+UPDATED:       [06/05/2026]
+================================================================================
+*/
 package radioisotops.api.com.example.demo.model;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
@@ -71,8 +80,6 @@ public class User {
 
     public User() {
     }
-
-    // --- GETTERS Y SETTERS ---
 
     public Long getId() {
         return id;

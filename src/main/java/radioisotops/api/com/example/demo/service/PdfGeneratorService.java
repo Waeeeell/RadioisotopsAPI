@@ -1,3 +1,12 @@
+/*
+================================================================================
+PROJECT:       [RADIOISOTOPO]
+VERSION:       1.0.0
+DESCRIPTION:   [Parte de PdfGeneratorService]
+AUTHOR:        [Marcos, Wael]
+UPDATED:       [06/05/2026]
+================================================================================
+*/
 package radioisotops.api.com.example.demo.service;
 
 import com.lowagie.text.*;
@@ -19,7 +28,6 @@ import java.time.format.DateTimeFormatter;
 @Service
 public class PdfGeneratorService {
 
-    // Paleta de colores definida
     private static final Color COLOR_PRIMARY = new Color(0x37517C);   // Azul oscuro
     private static final Color COLOR_ACCENT = new Color(0x4098FF);    // Azul claro
     private static final Color COLOR_LIGHT_GRAY = new Color(0xEBEBEB); // Fondo
@@ -32,7 +40,6 @@ public class PdfGeneratorService {
 
         document.open();
 
-        // --- 1. CABECERA ESTILIZADA ---
         PdfPTable headerTable = new PdfPTable(1);
         headerTable.setWidthPercentage(100);
 
@@ -47,7 +54,6 @@ public class PdfGeneratorService {
 
         document.add(headerTable);
 
-        // Subtítulo y Fecha
         Paragraph sub = new Paragraph("Portal de Monitorización Nuclear - radioisotopo.portal",
                 FontFactory.getFont(FontFactory.HELVETICA, 10, COLOR_ACCENT));
         sub.setAlignment(Paragraph.ALIGN_RIGHT);
@@ -58,7 +64,6 @@ public class PdfGeneratorService {
 
         document.add(new Paragraph(" ")); // Espaciado
 
-        // --- 2. INFORMACIÓN DEL PACIENTE (Tabla Limpia) ---
         PdfPTable infoTable = new PdfPTable(2);
         infoTable.setWidthPercentage(100);
         infoTable.setSpacingBefore(10f);
@@ -71,7 +76,6 @@ public class PdfGeneratorService {
         document.add(infoTable);
         document.add(new Paragraph(" "));
 
-        // --- 3. DETALLES DEL TRATAMIENTO ---
         PdfPTable treatmentTable = new PdfPTable(2);
         treatmentTable.setWidthPercentage(100);
 
@@ -80,7 +84,6 @@ public class PdfGeneratorService {
         addKeyValueCell(treatmentTable, "Dosis Inicial:", String.format("%.2f MBq", treatment.getDosis()));
         addKeyValueCell(treatmentTable, "Actividad Actual Estimada:", String.format("%.2f MBq", actividadActual));
 
-        // Celda de Estado con color dinámico
         PdfPCell labelEstado = new PdfPCell(new Phrase("Clasificación de Riesgo:", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10)));
         labelEstado.setBorder(Rectangle.BOTTOM);
         labelEstado.setBorderColor(COLOR_LIGHT_GRAY);
@@ -97,14 +100,12 @@ public class PdfGeneratorService {
 
         document.add(treatmentTable);
 
-        // --- 4. GRÁFICO DE DECAIMIENTO ---
         document.add(new Paragraph(" "));
         Paragraph graphTitle = new Paragraph("CURVA DE DECAIMIENTO RADIACTIVO (Proyección 400h)",
                 FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11, COLOR_PRIMARY));
         graphTitle.setSpacingBefore(15);
         document.add(graphTitle);
 
-        // Espacio para el dibujo manual
         document.add(new Paragraph(" "));
         document.add(new Paragraph(" "));
         document.add(new Paragraph(" "));
@@ -117,7 +118,6 @@ public class PdfGeneratorService {
         PdfContentByte cb = writer.getDirectContent();
         dibujarGraficoDecaimientoPro(cb, treatment.getRadioisotopo(), treatment.getDosis());
 
-        // --- 5. FIRMA Y PIE DE PÁGINA ---
         document.add(new Paragraph(" "));
         document.add(new Paragraph(" "));
 
@@ -171,12 +171,10 @@ public class PdfGeneratorService {
         float ancho = 380;
         float alto = 120;
 
-        // Dibujar Fondo del gráfico
         cb.setRGBColorFill(245, 245, 245);
         cb.rectangle(xBase, yBase, ancho, alto);
         cb.fill();
 
-        // Ejes
         cb.setLineWidth(1f);
         cb.setRGBColorStroke(150, 150, 150);
         cb.moveTo(xBase, yBase);
@@ -185,12 +183,10 @@ public class PdfGeneratorService {
         cb.lineTo(xBase, yBase + alto); // Y
         cb.stroke();
 
-        // Lógica de vida media
         double tMed = (isotopo.contains("131")) ? 192.48 :
                 (isotopo.contains("177")) ? 159.36 :
                         (isotopo.contains("60")) ? 46164.0 : 24.0;
 
-        // Curva
         cb.setLineWidth(2.5f);
         cb.setRGBColorStroke(64, 152, 255); // Usamos COLOR_ACCENT (4098FF)
 
@@ -204,7 +200,6 @@ public class PdfGeneratorService {
         }
         cb.stroke();
 
-        // Etiquetas pequeñas
         cb.beginText();
         try {
             BaseFont bf = BaseFont.createFont(BaseFont.HELVETICA, BaseFont.CP1252, BaseFont.NOT_EMBEDDED);

@@ -1,3 +1,12 @@
+/*
+================================================================================
+PROJECT:       [RADIOISOTOPO]
+VERSION:       1.0.0
+DESCRIPTION:   [Parte de ObservationResourceProvider]
+AUTHOR:        [Marcos, Wael]
+UPDATED:       [06/05/2026]
+================================================================================
+*/
 package radioisotops.api.com.example.demo.fhir;
 
 import ca.uhn.fhir.rest.annotation.RequiredParam;
@@ -28,7 +37,6 @@ public class ObservationResourceProvider implements IResourceProvider {
         return Observation.class;
     }
 
-    // Permite buscar telemetría por paciente: /fhir/Observation?subject=Patient/1
     @Search
     public List<Observation> getObservationsForPatient(@RequiredParam(name = Observation.SP_SUBJECT) ReferenceParam patientRef) {
         Long patientId = patientRef.getIdPartAsLong();
@@ -47,16 +55,13 @@ public class ObservationResourceProvider implements IResourceProvider {
         observation.setId("batt-" + localPatient.getId());
         observation.setStatus(Observation.ObservationStatus.FINAL);
 
-        // Código LOINC internacional para nivel de batería en dispositivos médicos
         observation.setCode(new CodeableConcept().addCoding(new Coding()
                 .setSystem("http://loinc.org")
                 .setCode("8775-6")
                 .setDisplay("Battery level of medical device")));
 
-        // Referencia al paciente (vínculo FHIR)
         observation.setSubject(new Reference("Patient/" + localPatient.getId()));
 
-        // Valor de la batería (en porcentaje)
         Quantity value = new Quantity();
         value.setValue(localPatient.getWatchBattery())
                 .setUnit("%")
@@ -64,7 +69,6 @@ public class ObservationResourceProvider implements IResourceProvider {
                 .setCode("%");
         observation.setValue(value);
 
-        // Fecha de la medición
         if (localPatient.getWatchUltimaSinc() != null) {
             Date date = Date.from(localPatient.getWatchUltimaSinc().atZone(ZoneId.systemDefault()).toInstant());
             observation.setEffective(new DateTimeType(date));

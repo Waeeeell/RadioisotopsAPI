@@ -1,3 +1,12 @@
+/*
+================================================================================
+PROJECT:       [RADIOISOTOPO]
+VERSION:       1.0.0
+DESCRIPTION:   [Parte de AlertConfig]
+AUTHOR:        [Marcos, Wael]
+UPDATED:       [06/05/2026]
+================================================================================
+*/
 package radioisotops.api.com.example.demo.model;
 
 import jakarta.persistence.*;
@@ -19,14 +28,12 @@ public class AlertConfig {
     @Column(name = "umbral_max")
     private Double umbralMax;
 
-    private String prioridad; // "ALTA", "MEDIA", "BAJA"
+    private String prioridad;
 
-    // --- RELACIÓN CON PATIENT ---
     @ManyToOne
     @JoinColumn(name = "patient_id", nullable = false)
     private Patient patient;
 
-    // Constructor vacío
     public AlertConfig() {
     }
 
@@ -40,7 +47,6 @@ public class AlertConfig {
         this.patient = patient;
     }
 
-    // Getters y Setters
     public Long getId() {
         return id;
     }

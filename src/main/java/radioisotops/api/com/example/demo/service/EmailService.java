@@ -1,3 +1,12 @@
+/*
+================================================================================
+PROJECT:       [RADIOISOTOPO]
+VERSION:       1.0.0
+DESCRIPTION:   [Parte de EmailService]
+AUTHOR:        [Marcos, Wael]
+UPDATED:       [06/05/2026]
+================================================================================
+*/
 package radioisotops.api.com.example.demo.service;
 
 import org.springframework.http.*;
@@ -13,9 +22,6 @@ public class EmailService {
     private final String SENDGRID_URL = "https://api.sendgrid.com/v3/mail/send";
     private final String FRONTEND_URL = "https://radioisotopo.carriedo.cat/login";
 
-    /**
-     * Envío de bienvenida para nuevos médicos (CON DISEÑO)
-     */
     @Async
     public void enviarBienvenidaMedico(String emailDestino, String nombreMedico, String passwordTemporal) {
         String htmlContent = generarPlantillaHtml(
@@ -27,9 +33,6 @@ public class EmailService {
         ejecutarEnvio(emailDestino, "Bienvenido al Portal Clínico", htmlContent);
     }
 
-    /**
-     * Envío de nueva clave tras Reset (CON DISEÑO)
-     */
     @Async
     public void enviarPasswordTemporal(String emailDestino, String nombreMedico, String passwordTemporal) {
         String htmlContent = generarPlantillaHtml(
@@ -41,9 +44,6 @@ public class EmailService {
         ejecutarEnvio(emailDestino, "Nueva contraseña temporal - Portal Médico", htmlContent);
     }
 
-    /**
-     * PLANTILLA BASE HTML PARA EVITAR REPETIR CÓDIGO
-     */
     private String generarPlantillaHtml(String titulo, String mensaje, String password, String textoBoton) {
         return "<html><body style='font-family: Arial, sans-serif; color: #333; background-color: #f9fafb; padding: 20px;'>"
                 + "<div style='max-width: 600px; margin: 0 auto; background: white; border: 1px solid #e5e7eb; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);'>"
@@ -60,9 +60,6 @@ public class EmailService {
                 + "</div></body></html>";
     }
 
-    /**
-     * Lógica de conexión con la API de SendGrid
-     */
     private void ejecutarEnvio(String toEmail, String subject, String htmlContent) {
         try {
             if (SENDGRID_API_KEY == null || SENDGRID_API_KEY.isEmpty()) {
@@ -96,9 +93,6 @@ public class EmailService {
         }
     }
 
-    /**
-     * Envío de consulta de soporte desde el paciente al médico (CON DISEÑO)
-     */
     @Async
     public void enviarCorreoSoporte(String emailDoctor, String asuntoWeb, String mensajePaciente, String nombrePaciente, String correoPaciente) {
         String htmlContent = "<html><body style='font-family: Arial, sans-serif; color: #333; background-color: #f9fafb; padding: 20px;'>"

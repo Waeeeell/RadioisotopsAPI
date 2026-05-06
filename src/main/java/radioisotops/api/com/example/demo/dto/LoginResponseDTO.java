@@ -1,3 +1,12 @@
+/*
+================================================================================
+PROJECT:       [RADIOISOTOPO]
+VERSION:       1.0.0
+DESCRIPTION:   [Parte de LoginResponseDTO]
+AUTHOR:        [Marcos, Wael]
+UPDATED:       [06/05/2026]
+================================================================================
+*/
 package radioisotops.api.com.example.demo.dto;
 
 public class LoginResponseDTO {
@@ -18,14 +27,14 @@ public class LoginResponseDTO {
     private boolean notifRadiacion;
     private boolean notifVitales;
     private boolean notifSincro;
-    private String profilePicUrl; // ✅ NUEVO
+    private String profilePicUrl;
 
     public LoginResponseDTO(Long id, String email, String nombreCompleto, String rol,
                             String especialidad, String colegiado, String token,
                             boolean requiereCambioPassword, String idioma, String zonaHoraria,
                             boolean notifBateria, boolean notifDesconexion, boolean notifResumen,
                             boolean notifRadiacion, boolean notifVitales, boolean notifSincro,
-                            String profilePicUrl) { // ✅ NUEVO
+                            String profilePicUrl) {
         this.id = id;
         this.email = email;
         this.nombreCompleto = nombreCompleto;
@@ -46,8 +55,6 @@ public class LoginResponseDTO {
     }
 
     public LoginResponseDTO() {}
-
-    // --- GETTERS Y SETTERS ---
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

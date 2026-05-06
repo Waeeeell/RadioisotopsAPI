@@ -1,3 +1,12 @@
+/*
+================================================================================
+PROJECT:       [RADIOISOTOPO]
+VERSION:       1.0.0
+DESCRIPTION:   [Parte de Notification]
+AUTHOR:        [Marcos, Wael]
+UPDATED:       [06/05/2026]
+================================================================================
+*/
 package radioisotops.api.com.example.demo.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -13,13 +22,13 @@ public class Notification {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 1000) // Aumentamos longitud por si el mensaje es largo
+    @Column(nullable = false, length = 1000)
     private String mensaje;
 
     @Column(name = "fecha_envio", nullable = false)
     private LocalDateTime fechaEnvio;
 
-    private Boolean leida = false; // Valor por defecto
+    private Boolean leida = false;
 
     private String asunto;
 
@@ -44,7 +53,6 @@ public class Notification {
         this.doctor = doctor;
     }
 
-    // Getters y Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

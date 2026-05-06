@@ -1,3 +1,12 @@
+/*
+================================================================================
+PROJECT:       [RADIOISOTOPO]
+VERSION:       1.0.0
+DESCRIPTION:   [Parte de FileStorageService]
+AUTHOR:        [Marcos, Wael]
+UPDATED:       [06/05/2026]
+================================================================================
+*/
 package radioisotops.api.com.example.demo.service;
 
 import org.springframework.stereotype.Service;
@@ -24,12 +33,10 @@ public class FileStorageService {
 
     public String save(MultipartFile file, Long userId) {
         try {
-            // Validar que sea una imagen
             if (!file.getContentType().startsWith("image/")) {
                 throw new RuntimeException("El archivo debe ser una imagen");
             }
 
-            // Generar nombre único: user_1_1712684000.jpg
             String extension = file.getOriginalFilename().substring(file.getOriginalFilename().lastIndexOf("."));
             String fileName = "user_" + userId + "_" + System.currentTimeMillis() + extension;
 

@@ -1,3 +1,12 @@
+/*
+================================================================================
+PROJECT:       [RADIOISOTOPO]
+VERSION:       1.0.0
+DESCRIPTION:   [Parte de User Controller]
+AUTHOR:        [Marcos, Wael]
+UPDATED:       [06/05/2026]
+================================================================================
+*/
 package radioisotops.api.com.example.demo.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,7 +27,6 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/users")
-// Importante: Asegúrate de que el CrossOrigin permita el método PUT explícitamente
 @CrossOrigin(origins = "*", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.OPTIONS})
 public class UserController {
 
@@ -58,7 +66,6 @@ public class UserController {
     @PostMapping("/register-doctor")
     public ResponseEntity<?> registrarDoctor(@RequestBody User nuevoUsuario, HttpServletRequest request) {
         try {
-            // Mantenemos el chequeo de admin solo para el registro de médicos
             String adminEmail = (String) request.getAttribute("userEmail");
             if (adminEmail == null) {
                 return ResponseEntity.status(401).body(Map.of("error", "No autorizado para registrar médicos"));
@@ -90,10 +97,6 @@ public class UserController {
         }
     }
 
-    /**
-     * ACTUALIZAR CONTRASEÑA
-     * He eliminado cualquier chequeo de 'request.getAttribute' para que no pida token de admin aquí.
-     */
     @PutMapping("/{id}/update-password")
     @Transactional
     public ResponseEntity<?> updatePassword(@PathVariable Long id, @RequestBody Map<String, String> payload) {

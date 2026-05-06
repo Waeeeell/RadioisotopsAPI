@@ -1,3 +1,12 @@
+/*
+================================================================================
+PROJECT:       [RADIOISOTOPO]
+VERSION:       1.0.0
+DESCRIPTION:   [Parte de JwtUtil]
+AUTHOR:        [Marcos, Wael]
+UPDATED:       [06/05/2026]
+================================================================================
+*/
 package radioisotops.api.com.example.demo.security;
 
 import io.jsonwebtoken.Jwts;
@@ -8,16 +17,13 @@ import org.springframework.stereotype.Component;
 import java.security.Key;
 import java.util.Date;
 
-@Component // Esta anotación es vital para que el @Autowired del Controller funcione
+@Component
 public class JwtUtil {
 
     private final Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
 
     private final long EXPIRATION_TIME = 86400000;
 
-    /**
-     * Genera un token JWT usando el email del usuario
-     */
     public String generateToken(String email) {
         return Jwts.builder()
                 .setSubject(email)
@@ -27,9 +33,6 @@ public class JwtUtil {
                 .compact();
     }
 
-    /**
-     * Extrae el email (subject) del token
-     */
     public String extractEmail(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(key)
@@ -39,9 +42,6 @@ public class JwtUtil {
                 .getSubject();
     }
 
-    /**
-     * Valida si el token es auténtico y no ha expirado
-     */
     public boolean validateToken(String token) {
         try {
             Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);

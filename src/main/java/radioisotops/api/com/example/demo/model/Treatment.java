@@ -1,3 +1,12 @@
+/*
+================================================================================
+PROJECT:       [RADIOISOTOPO]
+VERSION:       1.0.0
+DESCRIPTION:   [Parte de Treatment]
+AUTHOR:        [Marcos, Wael]
+UPDATED:       [06/05/2026]
+================================================================================
+*/
 package radioisotops.api.com.example.demo.model;
 
 import jakarta.persistence.*;
@@ -12,9 +21,9 @@ public class Treatment {
     private Long id;
 
     @Column(nullable = false)
-    private String radioisotopo; // Ej: Yodo-131, Tecnecio-99m
+    private String radioisotopo;
 
-    private Double dosis; // Cantidad administrada
+    private Double dosis;
 
     @Column(name = "fecha_inicio")
     private LocalDateTime fechaInicio;
@@ -24,17 +33,14 @@ public class Treatment {
 
     private String instrucciones;
 
-    // --- RELACIÓN CON PATIENT ---
     @ManyToOne
     @JoinColumn(name = "patient_id", referencedColumnName = "id", nullable = false)
     private Patient patient;
 
-    // --- RELACIÓN CON DOCTOR (El que lo receta) ---
     @ManyToOne
     @JoinColumn(name = "doctor_id", referencedColumnName = "id", nullable = false)
     private Doctor doctor;
 
-    // --- Constructores ---
     public Treatment() {
     }
 

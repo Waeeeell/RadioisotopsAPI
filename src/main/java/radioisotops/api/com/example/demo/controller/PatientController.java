@@ -1,3 +1,12 @@
+/*
+================================================================================
+PROJECT:       [RADIOISOTOPO]
+VERSION:       1.0.0
+DESCRIPTION:   [Parte de Patient Controller]
+AUTHOR:        [Marcos, Wael]
+UPDATED:       [06/05/2026]
+================================================================================
+*/
 package radioisotops.api.com.example.demo.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -53,10 +62,6 @@ public class PatientController {
     @Autowired
     private EmailService emailService;
 
-    /**
-     * REGISTRO INTEGRAL DE PACIENTE Y TRATAMIENTO
-     * Modificado para persistir el watchId del Bluetooth.
-     */
     @PostMapping("/register-full")
     @Transactional
     public ResponseEntity<?> registrarAltaCompleta(@RequestBody Map<String, Object> payload, HttpServletRequest request) {
@@ -79,7 +84,6 @@ public class PatientController {
                 return ResponseEntity.badRequest().body(Map.of("error", "El CIP es obligatorio."));
             }
 
-            // 1. Crear Usuario
             User userPaciente = new User();
             userPaciente.setNombreCompleto((String) datosPaciente.get("nombreCompleto"));
             userPaciente.setEmail(cip.toLowerCase() + "@catsalut.cat");
@@ -92,13 +96,11 @@ public class PatientController {
             userPaciente.setHospitalRef((String) datosPaciente.get("hospitalReferencia"));
             User userGuardado = userRepository.save(userPaciente);
 
-            // 2. Crear Perfil de Paciente
             Patient patient = new Patient();
             patient.setUser(userGuardado);
             patient.setDni(cip);
             patient.setNumSs(cip);
 
-            // MODIFICACIÓN: Guardar el watchId que viene del payload
             if (datosPaciente.containsKey("watchId")) {
                 patient.setWatchId((String) datosPaciente.get("watchId"));
             }
@@ -111,7 +113,6 @@ public class PatientController {
             patient.setDoctorAsignado(doc);
             Patient patientGuardado = patientRepository.save(patient);
 
-            // 3. Crear Tratamiento Inicial
             Treatment treatment = new Treatment();
             treatment.setRadioisotopo((String) datosTratamiento.get("radioisotopo"));
 
@@ -145,14 +146,6 @@ public class PatientController {
         }
     }
 
-    /**
-     * NUEVO: Obtener detalle completo del paciente para la página de perfil
-     * Incluye datos dinámicos del reloj y estado del tratamiento.
-     */
-    /**
-     * NUEVO: Obtener detalle completo del paciente para la página de perfil
-     * Incluye datos dinámicos del reloj y estado del tratamiento.
-     */
     @GetMapping("/perfil/{cip}")
     public ResponseEntity<?> obtenerPerfilPaciente(@PathVariable String cip) {
         return patientRepository.findByDni(cip).map(p -> {
@@ -161,13 +154,11 @@ public class PatientController {
             dto.put("cip", p.getDni());
             dto.put("valorEmocional", p.getValorEmocional());
 
-            // Datos del Smartwatch
             dto.put("watchId", p.getWatchId());
             dto.put("watchBattery", p.getWatchBattery() != null ? p.getWatchBattery() : 0);
             dto.put("watchUltimaSinc", p.getWatchUltimaSinc());
             dto.put("watchModel", p.getWatchModel() != null ? p.getWatchModel() : "Galaxy Watch");
 
-            // Datos del Tratamiento y Progreso (INVERTIDO)
             Treatment t = treatmentRepository.findFirstByPatientOrderByFechaInicioDesc(p);
             if (t != null && t.getRadioisotopo() != null) {
                 double dosiInicial = t.getDosis();
@@ -175,10 +166,9 @@ public class PatientController {
 
                 dto.put("tratamiento", t.getRadioisotopo() + " (" + String.format("%.2f", activitatActual) + " MBq)");
 
-                // --- NUEVA LÓGICA DE PROGRESO ---
                 double porcentajeRestante = (dosiInicial > 0) ? (activitatActual / dosiInicial) * 100 : 0;
                 int progreso = (int) Math.round(100 - porcentajeRestante);
-                dto.put("progreso", Math.max(0, Math.min(100, progreso))); // Asegura que esté entre 0 y 100
+                dto.put("progreso", Math.max(0, Math.min(100, progreso)));
 
                 if (activitatActual > 400) { dto.put("color", "red"); dto.put("estado", "Fase Inicial"); }
                 else if (activitatActual > 1) { dto.put("color", "yellow"); dto.put("estado", "Fase de Decaimiento"); }
@@ -212,10 +202,9 @@ public class PatientController {
 
                 dto.put("tratamiento", t.getRadioisotopo() + " (" + String.format("%.2f", activitatActual) + " MBq)");
 
-                // --- NUEVA LÓGICA DE PROGRESO ---
                 double porcentajeRestante = (dosiInicial > 0) ? (activitatActual / dosiInicial) * 100 : 0;
                 int progreso = (int) Math.round(100 - porcentajeRestante);
-                dto.put("progreso", Math.max(0, Math.min(100, progreso))); // Asegura que esté entre 0 y 100
+                dto.put("progreso", Math.max(0, Math.min(100, progreso)));
 
                 if (activitatActual > 400) { dto.put("color", "red"); dto.put("estado", "Fase Inicial"); }
                 else if (activitatActual > 1) { dto.put("color", "yellow"); dto.put("estado", "Fase de Decaimiento"); }
@@ -241,7 +230,6 @@ public class PatientController {
         return dosiInicial * Math.pow(0.5, (double) horesTranscorregudes / tMedHores);
     }
 
-    // --- NUEVO ENDPOINT PARA RECIBIR LA BATERÍA DEL RELOJ ---
     @PostMapping("/{cip}/actualizar-telemetria")
     @Transactional
     public ResponseEntity<?> actualizarTelemetriaDesdeReloj(@PathVariable String cip, @RequestBody WatchEstadoDTO datosReloj) {
@@ -313,7 +301,6 @@ public class PatientController {
         return ResponseEntity.ok(Map.of("count", patientRepository.count()));
     }
 
-    // --- CORREGIDO PARA EVITAR EL ERROR 500 ---
     @PostMapping("/{cip}/register-view")
     @Transactional
     public ResponseEntity<?> registrarVisita(@PathVariable String cip, HttpServletRequest request) {
@@ -335,7 +322,7 @@ public class PatientController {
                 actividad.setFechaAccion(LocalDateTime.now());
                 activityRepository.save(actividad);
             }
-            return ResponseEntity.ok().build(); // Retorna OK siempre para no romper React
+            return ResponseEntity.ok().build();
         } catch (Exception e) {
             return ResponseEntity.ok("Error controlado");
         }

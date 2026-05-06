@@ -1,3 +1,12 @@
+/*
+================================================================================
+PROJECT:       [RADIOISOTOPO]
+VERSION:       1.0.0
+DESCRIPTION:   [Parte de Autch]
+AUTHOR:        [Marcos, Wael]
+UPDATED:       [06/05/2026]
+================================================================================
+*/
 package radioisotops.api.com.example.demo.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -8,9 +17,9 @@ import radioisotops.api.com.example.demo.dto.LoginRequest;
 import radioisotops.api.com.example.demo.dto.LoginResponseDTO;
 import radioisotops.api.com.example.demo.dto.PreferenciasDTO;
 import radioisotops.api.com.example.demo.model.User;
-import radioisotops.api.com.example.demo.model.Patient; // ✅ AÑADIDO
+import radioisotops.api.com.example.demo.model.Patient;
 import radioisotops.api.com.example.demo.repository.UserRepository;
-import radioisotops.api.com.example.demo.repository.PatientRepository; // ✅ AÑADIDO
+import radioisotops.api.com.example.demo.repository.PatientRepository;
 import radioisotops.api.com.example.demo.security.JwtUtil;
 import radioisotops.api.com.example.demo.service.EmailService;
 

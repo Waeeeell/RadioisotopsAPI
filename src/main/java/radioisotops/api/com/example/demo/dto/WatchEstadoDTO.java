@@ -1,3 +1,12 @@
+/*
+================================================================================
+PROJECT:       [RADIOISOTOPO]
+VERSION:       1.0.0
+DESCRIPTION:   [Parte de WatchEstadoDTO]
+AUTHOR:        [Marcos, Wael]
+UPDATED:       [06/05/2026]
+================================================================================
+*/
 package radioisotops.api.com.example.demo.dto;
 
 import java.util.List;
@@ -7,20 +16,16 @@ public class WatchEstadoDTO {
     private int diasRestantes;
     private int diaActual;
 
-    // Cambiado a Integer para manejar valores nulos (cuando aún no hay telemetría)
     private Integer porcentajeBateria;
 
-    private String mensajeApi;        // HomeScreen: 1 línea corta
-    private String titulo;            // ActivityScreen: título
+    private String mensajeApi;
+    private String titulo;
     private String mensajeParte1;
     private String mensajeResaltado;
     private String mensajeParte2;
-    private List<String> instrucciones; // ActivityScreen: lista que rota
+    private List<String> instrucciones;
 
-    // Constructor vacío obligatorio para la serialización JSON (Jackson)
     public WatchEstadoDTO() {}
-
-    // --- Getters y Setters ---
 
     public int getDiasSuperados() {
         return diasSuperados;

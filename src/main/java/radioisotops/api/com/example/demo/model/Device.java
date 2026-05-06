@@ -1,3 +1,12 @@
+/*
+================================================================================
+PROJECT:       [RADIOISOTOPO]
+VERSION:       1.0.0
+DESCRIPTION:   [Parte de Device]
+AUTHOR:        [Marcos, Wael]
+UPDATED:       [06/05/2026]
+================================================================================
+*/
 package radioisotops.api.com.example.demo.model;
 
 import jakarta.persistence.*;
@@ -6,24 +15,21 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "devices")
 public class Device {
-    /* prova */
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false, unique = true)
-    private String serieNum; // Número de serie único del aparato
+    private String serieNum;
 
-    private String tipo; // Ej: Contador Geiger, Sensor de pulso, etc.
+    private String tipo;
 
-    private String estado; // Activo, Inactivo, Batería Baja
+    private String estado;
 
     @Column(name = "ultima_conexion")
     private LocalDateTime ultimaConexion;
 
-    // --- RELACIÓN CON PATIENT ---
-    // Un dispositivo pertenece a un paciente específico
     @OneToOne
     @JoinColumn(name = "patient_id", referencedColumnName = "id")
     private Patient patient;
@@ -76,7 +82,6 @@ public class Device {
         this.patient = patient;
     }
 
-    // --- Constructor vacío (OBLIGATORIO para JPA) ---
     public Device() {
     }
 
@@ -88,7 +93,4 @@ public class Device {
         this.ultimaConexion = ultimaConexion;
         this.patient = patient;
     }
-
-    // --- Constructores ---
-
 }
