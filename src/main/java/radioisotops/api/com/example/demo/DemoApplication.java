@@ -50,11 +50,28 @@ public class DemoApplication {
                 System.out.println("Administrador creado con éxito.");
             }
 
-            patientRepository.findByDni("LOMA0208110059").ifPresent(p -> {
-                p.getUser().setEstado("BORRAR");
-                userRepository.save(p.getUser());
-                System.out.println("Paciente LOMA0208110059 marcado como BORRAR.");
-            });
+            String cipBorrar = "LOMA0208110059";
+            var pac = patientRepository.findByDni(cipBorrar);
+            if (pac.isPresent()) {
+                User u = pac.get().getUser();
+                if (u != null) {
+                    u.setEstado("BORRAR");
+                    userRepository.save(u);
+                    System.out.println("OK - Paciente " + cipBorrar + " (" + u.getNombreCompleto() + ") marcado como BORRAR.");
+                } else {
+                    System.out.println("ERROR - Paciente " + cipBorrar + " encontrado pero sin User asociado.");
+                }
+            } else {
+                System.out.println("ERROR - Paciente con CIP " + cipBorrar + " NO encontrado en la BD.");
+                var porEmail = userRepository.findByEmail(cipBorrar.toLowerCase() + "@catsalut.cat");
+                if (porEmail.isPresent()) {
+                    porEmail.get().setEstado("BORRAR");
+                    userRepository.save(porEmail.get());
+                    System.out.println("OK - Encontrado por email y marcado como BORRAR.");
+                } else {
+                    System.out.println("ERROR - Tampoco encontrado por email " + cipBorrar.toLowerCase() + "@catsalut.cat");
+                }
+            }
 
             System.out.println("Verificación de usuarios iniciales completada.");
         };
