@@ -42,8 +42,7 @@ public class JwtFilter extends OncePerRequestFilter {
         String requestURI = request.getRequestURI();
 
         if (requestURI.contains("/api/auth/login") ||
-                requestURI.contains("/api/auth/register") ||
-                requestURI.contains("/update-password")) {
+                requestURI.contains("/api/auth/register")) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -65,8 +64,7 @@ public class JwtFilter extends OncePerRequestFilter {
         } else {
             if (requestURI.contains("/api/patients") ||
                     (requestURI.contains("/api/users") &&
-                            !requestURI.contains("/api/users/view-avatar") &&
-                            !requestURI.contains("/update-password"))) {
+                            !requestURI.contains("/api/users/view-avatar"))) {
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Falta el token de autorización");
                 return;
             }
