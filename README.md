@@ -344,6 +344,24 @@ Test file: `src/test/java/radioisotops/api/com/example/demo/DemoApplicationTests
 
 ---
 
+## Authors
+
+- **Marcos Gongora Carriedo**
+- **Wael Zerrouk El Kasri**
+
+---
+
+## Related Repositories
+
+| Project | Repository |
+|---|---|
+| Mobile App (this project) | [app-radioisotopo](https://github.com/Fedeerich/app-radioisotopo) |
+| Backend API (Node.js) | [web-radioisotopo](https://github.com/Fedeerich/web-radioisotopo) |
+| API Service (Java) | [RadioisotopsAPI](https://github.com/Waeeeell/RadioisotopsAPI) |
+| Smartwatch App (Wear OS) | [WearOs_Radioisotops](https://github.com/Waeeeell/WearOs_Radiois-tops.git) |
+
+---
+
 ## License
 
 © 2026 RadiaSync. All rights reserved.
